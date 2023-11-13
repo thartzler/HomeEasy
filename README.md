@@ -23,8 +23,6 @@
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
 
 
 
@@ -32,7 +30,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/thartzler/HomeEasy">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
+    <img src="images/HHS_Logo.png" alt="Logo" width="80" height="80">
   </a>
 
 <h3 align="center">HomeEasy</h3>
@@ -86,7 +84,9 @@
 
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
-Here's a blank template to get started: To avoid retyping too much info. Do a search and replace with your text editor for the following: `github_username`, `repo_name`, `twitter_handle`, `linkedin_username`, `email_client`, `email`, `project_title`, `project_description`
+This project originated in response to the requirements of the Capstone project for Maryville's Masters of Software Development program.
+My parents have multiple rental properties and it can be challenging at times to keep track of all the applications, tenant payments, etc.
+The application is expected to address a few of those issues.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -94,14 +94,7 @@ Here's a blank template to get started: To avoid retyping too much info. Do a se
 
 ### Built With
 
-* [![Next][Next.js]][Next-url]
-* [![React][React.js]][React-url]
-* [![Vue][Vue.js]][Vue-url]
-* [![Angular][Angular.io]][Angular-url]
-* [![Svelte][Svelte.dev]][Svelte-url]
-* [![Laravel][Laravel.com]][Laravel-url]
 * [![Bootstrap][Bootstrap.com]][Bootstrap-url]
-* [![JQuery][JQuery.com]][JQuery-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
