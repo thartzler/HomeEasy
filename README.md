@@ -30,7 +30,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/thartzler/HomeEasy">
-    <img src="images/HHS_Logo.png" alt="Logo" width="80" height="80">
+    <img src="images/HHS_Logo.png" alt="Logo" height="80">
   </a>
 
 <h3 align="center">HomeEasy</h3>
