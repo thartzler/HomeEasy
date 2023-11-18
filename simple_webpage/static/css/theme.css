@@ -1,0 +1,373 @@
+html {
+  height: 100%;
+  box-sizing: border-box;
+}
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "Avenir", Helvetica, Arial, "sans-serif";
+}
+*:before,
+* :after {
+  box-sizing: inherit;
+}
+body {
+  color: #212F3C;
+  position: relative;
+  margin: 0;
+  padding-bottom: 184px;
+  min-height: 100%;
+}
+body header {
+  min-width: 250px;
+}
+header,
+footer {
+  width: 100%;
+  z-index: 10;
+  background-color: #212F3C;
+}
+.navbar-nav,
+.logo,
+.reviewText,
+.smallProductPhoto,
+.productPhoto,
+.employeePhoto {
+  margin: auto;
+}
+.navbar-nav,
+.nav-link {
+  text-emphasis: bold;
+}
+.reviewText,
+.nav-link {
+  text-align: center;
+}
+.nav-item,
+.navbar {
+  padding: 0px 5px;
+}
+.secondary-nav-item {
+  color: #212F3C;
+}
+.secondNavbar {
+  box-shadow: 0px 5px 8px grey;
+  overflow-x: auto;
+}
+.selected-nav-item,
+.selected-secondary-nav-item {
+  background-color: #27ae60;
+}
+.selected-nav-item a,
+.selected-secondary-nav-item a {
+  color: #212F3C !important;
+}
+.logo {
+  height: 5vh;
+  min-height: 50px;
+  margin: 5px 0px;
+}
+.team {
+  max-block-size: 500px;
+  max-inline-size: 100%;
+  padding: 2px;
+}
+.telephone,
+.footer-nav-link,
+.nav-link {
+  text-decoration: none;
+  color: whitesmoke;
+}
+.telephone:hover,
+.footer-nav-link:hover,
+.nav-link:hover {
+  color: #c2c2c2;
+}
+main {
+  margin: 0 auto;
+  margin-top: calc(max( 5vh , 50px) + 20px);
+  z-index: 5;
+}
+.review,
+.employee {
+  margin: 50px auto;
+}
+.reviewCard,
+.loginEntry {
+  max-width: 75%;
+  min-height: 250px;
+  padding: 45px 40px;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 3px solid #5dade2;
+}
+.checked {
+  color: #27ae60;
+}
+.loginMessage {
+  width: 100%;
+}
+@media screen and (max-width: 768px) {
+  p.review-stars,
+  h5.reviewTitle {
+    text-align: center;
+  }
+  .employeePhoto {
+    margin: 20px 0px;
+  }
+  .employee {
+    text-align: center;
+  }
+}
+.review-stars {
+  text-align: right;
+}
+.companyReviews {
+  margin: 50px auto;
+}
+.carousel-indicators {
+  margin-bottom: 0px;
+}
+.smallProductPhoto,
+.employeePhoto {
+  max-block-size: 250px;
+  max-inline-size: 100%;
+}
+.productReviewIntro {
+  padding-left: 15px;
+  padding-top: 10px;
+}
+footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding-top: 25px;
+  color: whitesmoke;
+}
+.footer {
+  font-size: small;
+}
+.copyright {
+  font-size: 60%;
+  text-align: center;
+}
+ul {
+  list-style: none;
+}
+ul.footer {
+  padding-inline-start: 20px;
+}
+hr {
+  border: 2px solid #5dade2;
+  border-radius: 2px;
+  margin: 50px auto;
+  width: calc(100vw - 80px);
+}
+hr.footer {
+  visibility: hidden;
+}
+hr.partial {
+  width: 75%;
+  border: 1px solid #5dade2;
+  border-radius: 1px;
+  margin: auto;
+}
+a {
+  color: #5dade2;
+}
+a:hover {
+  color: #217cb8;
+}
+h5.ReviewTitle {
+  padding-top: 20px;
+}
+button {
+  background-color: #5dade2;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 1px solid #212F3C;
+  padding: 8px;
+  color: whitesmoke;
+  font-weight: bold;
+}
+.nav-button {
+  margin: 10px auto;
+  width: 100%;
+}
+.nav-button:hover {
+  background-color: #212F3C;
+  border: 1px solid #212F3C;
+  color: whitesmoke;
+}
+.nav-button:active {
+  background-color: #212F3C;
+  color: whitesmoke;
+  border: 1px solid whitesmoke;
+}
+.nav-button:disabled {
+  background-color: whitesmoke;
+  color: #212F3C;
+  border: 1px solid #212F3C;
+}
+.inputLabel {
+  font-size: 16px;
+  font-weight: bold;
+  padding-left: 12px;
+  padding-bottom: 20px;
+}
+input,
+select {
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  min-width: 100%;
+  width: 100%;
+  margin-bottom: 2px;
+  margin: 10px 0 2px 0;
+}
+input:focus,
+select:focus {
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+}
+input.inputField,
+select.inputField {
+  padding: 9px;
+  border: 1px solid #212F3C;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+}
+input.inputField:focus,
+select.inputField:focus {
+  padding: 8px;
+  border: 2px solid #212F3C;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  outline: none;
+}
+input.emptyInputField,
+select.emptyInputField {
+  padding: 7px;
+  border: 3px solid #c0392b;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+}
+input.emptyInputField:focus,
+select.emptyInputField:focus {
+  padding: 8px;
+  border: 2px solid #212F3C;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  outline: none;
+}
+input.satisfiedInputField,
+select.satisfiedInputField {
+  padding: 7px;
+  border: 3px solid #27ae60;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+}
+input.satisfiedInputField:focus,
+select.satisfiedInputField:focus {
+  padding: 8px;
+  border: 2px solid #212F3C;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  outline: none;
+}
+.warning {
+  background-color: #ffffff;
+  font-weight: bold;
+  color: #f09915;
+  padding: 15px;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 3px solid #f09915;
+}
+.danger {
+  background-color: #ffffff;
+  font-weight: bold;
+  color: #c0392b;
+  padding: 15px;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 3px solid #c0392b;
+}
+.success {
+  background-color: #ffffff;
+  font-weight: bold;
+  color: #27ae60;
+  padding: 15px;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 3px solid #27ae60;
+}
+.bg-dark {
+  background-color: #212F3C !important;
+}
+.login-title {
+  padding-top: 20px;
+}
+@media screen and (max-width: 575px) {
+  body {
+    padding-bottom: 450px;
+  }
+  .navbar-brand {
+    margin: auto;
+    padding-left: 56px;
+  }
+  h5.ReviewTitle,
+  p,
+  h3,
+  .footer-nav-link,
+  .company-info,
+  .footer,
+  .footer-nav,
+  .footer-nav-item {
+    text-align: center;
+  }
+  .footer-nav,
+  .footer-nav-item {
+    margin: auto;
+    padding: 0px;
+  }
+  ul.footer {
+    padding-inline-start: 0px;
+  }
+  .productReviewIntro {
+    padding-left: 0px;
+  }
+  .company-info,
+  .infoRequest {
+    margin-top: 30px;
+  }
+  .footer {
+    margin-bottom: 25px;
+    padding-left: 0px;
+  }
+  hr.footer {
+    padding: 0px;
+    visibility: visible;
+  }
+  .nav-button {
+    margin: 10px auto;
+    min-width: 100%;
+    width: 100%;
+  }
+  .cc {
+    max-width: 80%;
+  }
+}

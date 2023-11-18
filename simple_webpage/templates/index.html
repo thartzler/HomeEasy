@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+
+
+
+{% block pageInfo %}
+<script type="text/javascript" src="{{ url_for('static', filename = 'js/home.js') }}"></script>
+{% endblock %}
+
+{% block additionalMustacheTemplates %}
+
+<!-- <script id="reviewPostPreview" type="x-tmpl-mustache">
+    {{item}}
+    <div class="row review">
+        <div class="col-sm-3 d-flex justify-content-center">
+            <a href="{{link}}" >
+                <img src={{image}} class="smallProductPhoto" alt="{{altText}}"/>
+            </a>
+        </div>
+        <div class="col-sm-9">
+            <h5 class="ReviewTitle">{{title}}</h5>
+            <p class="productReviewIntro">
+                {{text}}
+            </p>
+            <a href="{{link}}"><p class="productReviewIntro">Read More</p></a>
+        </div>
+    </div>
+    <hr class="partial center"/>
+    {{item}}
+    
+</script>
+
+<script id="reviewCard" type="x-tmpl-mustache">
+    {{review}}
+    <div class="carousel-item {{isActive}}">
+        <div class="container review reviewCard">
+            <div class="row d-flex justify-content-around">
+                <div class="col-12 col-md-7 g-0">
+                    <h5 class="reviewTitle">
+                        {{title}}
+                    </h5>
+                </div>
+                <div class="col-12 col-md-4 g-0">
+                    <p class="review-stars">
+                        <span class="fa fa-star {{star_1}}"></span>
+                        <span class="fa fa-star {{star_2}}"></span>
+                        <span class="fa fa-star {{star_3}}"></span>
+                        <span class="fa fa-star {{star_4}}"></span>
+                        <span class="fa fa-star {{star_5}}"></span>
+                    </p>
+                </div>
+                
+            </div>
+            <div class="reviewText">
+                <p class="reviewText">
+                    {{text}}
+                </p>
+            </div>
+        </div>
+    </div>
+    {{review}}
+</script> -->
+
+{% endblock %}
+
+
+
+
+{% block mainContent %}
+    <main>
+        <div id="homeMainCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval=10000>
+            <div class="carousel-indicators">
+              <button type="button" data-bs-target="#homeMainCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+              <button type="button" data-bs-target="#homeMainCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+              <button type="button" data-bs-target="#homeMainCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+            </div>
+            <div class="carousel-inner">
+              <div class="carousel-item active">
+                <img src="{{ url_for('static', filename = 'media/Intro_Pic1.jpeg') }}" class="d-block w-100" alt="House 1">
+              </div>
+              <div class="carousel-item">
+                <img src="{{ url_for('static', filename = 'media/Intro_Pic2.jpeg') }}" class="d-block w-100" alt="House 2">
+              </div>
+              <div class="carousel-item">
+                <img src="{{ url_for('static', filename = 'media/Intro_Pic3.jpeg') }}" class="d-block w-100" alt="House 3">
+              </div>
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#homeMainCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+              </button>
+              <button class="carousel-control-next" type="button" data-bs-target="#homeMainCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+              </button>
+        </div>
+        <div class="container companyReviews">
+            <a name="customerReviews"></a>
+            <h3>What Our Customers Say About Us...</h3>
+            <div id="customer-review-Carousel" class="carousel carousel-dark slide " data-bs-ride="carousel" data-bs-interval=5000>
+                <div class="carousel-indicators">
+                    <button type="button" data-bs-target="#customer-review-Carousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                    <button type="button" data-bs-target="#customer-review-Carousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                    <button type="button" data-bs-target="#customer-review-Carousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+                </div>
+                <!-- container for the rendered review cards to be populated -->
+                <div class="carousel-inner" id="rendered_review_carousel"></div>
+
+                <button class="carousel-control-prev" type="button" data-bs-target="#customer-review-Carousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#customer-review-Carousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+        </div>
+        <a name="productReviews"></a>
+        <hr/>
+        <div class="container">
+            <h3>Latest Product Reviews</h3>
+
+            <!-- container for the reviews to render -->
+            <div class="container" id="render_reviews"></div>
+
+            <div class="col review d-flex justify-content-center">
+                <a href="./product_reviews/index.html"><button class="nav-button">See More Reviews</button></a>
+            </div>
+        </div>
+        
+    </main>
+{% endblock %}

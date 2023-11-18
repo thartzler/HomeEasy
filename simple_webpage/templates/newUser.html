@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block pageInfo %}
+
+    <style type="text/css" rel="stylesheet/css">
+        /* .navbar-dark{
+            
+        } */
+        .secondary-nav-item {
+            color:#212529; /* @tertiaryColor */
+        }
+        .secondNavbar {
+            
+            box-shadow: 0px 5px 8px grey;
+        }
+        main {
+            margin-top: calc(max(5vh, 50px) + 83px);
+            padding-top: 30px;
+        }
+        main h1, main h2,.contactUs p {
+            text-align: center;
+            margin:15px 0px;
+        }
+        .contactUs{
+            max-width: 90%;
+        }
+        .team, .cc {
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .cc div{
+            padding:0px;
+            margin: 0px 2px;
+            width: 100%;
+            max-width: 100%;
+            max-height:100%;
+        }
+        form{
+            padding: 20px;
+            border-radius: 7px;
+            border: 3px solid #212529;
+            margin-bottom: 50px;
+        }        
+        
+        
+    </style>
+    <script type="text/javascript">
+        function ValidateEmail(input) {
+            var mailformat = /(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/
+            if (mailformat.test(input.value)) {
+                input.setAttribute("class","satisfiedInputField");    //The pop up alert for a valid email address
+                // document.inquiryForm.getElementById("emailAddress").focus();
+                readyToSubmit()
+                return true;
+            }
+            else if (input.value!="" || (input.value=="" && input.hasAttribute("required"))) {
+                // alert("You have entered an invalid email address!");    //The pop up alert for an invalid email address
+                input.setAttribute("class","emptyInputField");
+                // document.getElementById("emailAddress").focus();
+                return false;
+            }
+            else {
+                input.setAttribute("class","inputField")
+                readyToSubmit()
+                return true;
+            }
+        }
+        function validate(input) {
+            // var mailformat = /^w+([.-]?w+)*@w+([.-]?w+)*(.w{2,3})+$/;
+            
+            if (/^[a-zA-Z0-9&+?_`~-]/.test(input.value)) {
+                input.setAttribute("class","satisfiedInputField");    //The pop up alert for a valid email address
+                // document.inquiryForm.getElementById("emailAddress").focus();
+                readyToSubmit()
+                return true;
+            }
+            else if (input.value!="" || (input.value=="" && input.hasAttribute("required"))) {
+                // alert("You have entered an invalid email address!");    //The pop up alert for an invalid email address
+                input.setAttribute("class","emptyInputField");
+                
+                // document.getElementById("emailAddress").focus();
+                return false;
+            }
+            else {
+                input.setAttribute("class","inputField")
+                readyToSubmit()
+                return true;
+            }
+        }
+        function readyToSubmit() {
+            for (const ele of document.getElementById("newUserSignup").querySelectorAll("[required]")) {
+                if (!ele.reportValidity()) {
+                    return;
+                }
+            }
+            document.getElementById("submitButton").disabled=false
+        }
+        
+        function checkPasswords(input) {
+            // alert(document.getElementById("password").value)
+            if (input.value != document.getElementById("password").value) {
+                input.setAttribute("class","emptyInputField")
+                // alert("The passwords do not match.")
+                document.getElementById("userMessage").setAttribute("class", "danger")//alert("You have entered an invalid email address!");    //The pop up alert for an invalid email address
+                document.getElementById("userMessage").innerText = "The passwords do not match!"
+
+                return false;
+            }
+            else if (input.value == document.getElementById("password").value){
+                input.setAttribute("class","satisfiedInputField")
+                document.getElementById("userMessage").setAttribute("class", "")
+                document.getElementById("userMessage").innerHTML = ""
+                return true;
+            }
+            else {
+                input.setAttribute("class","inputField")
+                return true;
+            }
+
+        }
+        function validateSubmit(input) {
+            // var mailformat = /^w+([.-]?w+)*@w+([.-]?w+)*(.w{2,3})+$/;
+            alert(input)
+            // if (/^[a-zA-Z0-9&+?_`~-]/.test(input.value)) {
+            //     input.setAttribute("class","satisfiedInputField");    //The pop up alert for a valid email address
+            //     // document.inquiryForm.getElementById("emailAddress").focus();
+            //     return true;
+            // }
+            // else if (input.value!="" || (input.value=="" && input.hasAttribute("required"))) {
+            //     // alert("You have entered an invalid email address!");    //The pop up alert for an invalid email address
+            //     input.setAttribute("class","emptyInputField");
+            //     // document.getElementById("emailAddress").focus();
+            //     return false;
+            // }
+            // else {
+            //     input.setAttribute("class","inputField")
+            //     return true;
+            // }
+        }
+        
+
+    </script>
+{% endblock %}
+
+
+
+
+{% block mainContent %}
+<main>
+    <a name="contactUs"></a>
+    <div class="container  contactUs">
+        <div class="container">
+            <div class="row d-flex justify-content-center">
+                <h1>Create a new account</h1>
+            </div>
+            <div class="row d-flex justify-content-around">
+                <div class="col-sm-7 infoRequest">
+                    <form action="#" name="inquiryForm" id='newUserSignup' method="POST">
+                        <div class="row">
+                            <div class="col-md-6">
+                                {{ form.firstName(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.firstName.label(class="inputLabel") }}
+                            </div>
+                            <div class="col-md-6">
+                                {{ form.lastName(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.lastName.label(class="inputLabel") }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                {{ form.companyName(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.companyName.label(class="inputLabel") }}
+                            </div>
+                            
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                {{ form.email(class="inputField", onfocusout="ValidateEmail(this)") }}
+                                {{ form.email.label(class="inputLabel") }}
+                            </div>
+                            
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                {{ form.address(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.address.label(class="inputLabel") }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-5">
+                                {{ form.city(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.city.label(class="inputLabel") }}
+                            </div>
+                            <div class="col-md-3">
+                                {{ form.state(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.state.label(class="inputLabel") }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.zipCode(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.zipCode.label(class="inputLabel") }}
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                {{ form.phone(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.phone.label(class="inputLabel") }}
+                            </div>
+                            
+                        </div>
+                        <!-- <div class="row">
+                            <div class="col">
+                                <input class="inputField" id="username" name="username" onfocusout="validate(this)" required/><br/>
+                                <label class="inputLabel"  for="username">Username :</label>
+                            </div>
+                            
+                        </div> -->
+                        <div class="row">
+                            <div class="col">
+                                {{ form.password(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.password.label(class="inputLabel") }}
+                            </div>
+                            
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                {{ form.password_confirm(class="inputField", onfocusout="checkPasswords(this)") }}
+                                {{ form.password_confirm.label(class="inputLabel") }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col">
+                                <label id="userMessage" class="userMessage"></label>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col col-sm-5">
+                                <button class="nav-button" id="submitButton" disabled onclick="validateSubmit('contactUsForm')">Create</button>
+                            </div>
+                            
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>{% endblock %}
