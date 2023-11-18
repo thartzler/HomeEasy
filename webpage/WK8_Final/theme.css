@@ -1,0 +1,295 @@
+html {
+  height: 100%;
+  box-sizing: border-box;
+}
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "Avenir", Helvetica, Arial, "sans-serif";
+}
+*:before,
+* :after {
+  box-sizing: inherit;
+}
+body {
+  color: #212529;
+  position: relative;
+  margin: 0;
+  padding-bottom: 295px;
+  min-height: 100%;
+}
+body header {
+  min-width: 250px;
+}
+header,
+footer {
+  width: 100%;
+  z-index: 10;
+  background-color: #212529;
+}
+.navbar-nav,
+.logo,
+.reviewText,
+.smallProductPhoto,
+.productPhoto,
+.employeePhoto {
+  margin: auto;
+}
+.navbar-nav,
+.nav-link {
+  text-emphasis: bold;
+}
+.reviewText,
+.nav-link {
+  text-align: center;
+}
+.nav-item,
+.navbar {
+  padding: 0px 5px;
+}
+.selected-nav-item,
+.selected-secondary-nav-item {
+  background-color: #f2b423;
+}
+.selected-nav-item a,
+.selected-secondary-nav-item a {
+  color: #212529 !important;
+}
+.logo {
+  height: 5vh;
+  min-height: 50px;
+  margin: 5px 0px;
+}
+.team {
+  max-block-size: 500px;
+  max-inline-size: 100%;
+  padding: 2px;
+}
+.telephone,
+.footer-nav-link,
+.nav-link {
+  text-decoration: none;
+  color: whitesmoke;
+}
+.telephone:hover,
+.footer-nav-link:hover,
+.nav-link:hover {
+  color: #c2c2c2;
+}
+main {
+  margin: 0 auto;
+  margin-top: calc(max( 5vh , 50px) + 20px);
+  z-index: 5;
+}
+.review,
+.employee {
+  margin: 50px auto;
+}
+.reviewCard {
+  max-width: 75%;
+  min-height: 250px;
+  padding: 45px 40px;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 3px solid #209CA0;
+}
+.checked {
+  color: #f2b423;
+}
+@media screen and (max-width: 768px) {
+  p.review-stars,
+  h5.reviewTitle {
+    text-align: center;
+  }
+  .employeePhoto {
+    margin: 20px 0px;
+  }
+  .employee {
+    text-align: center;
+  }
+}
+.review-stars {
+  text-align: right;
+}
+.companyReviews {
+  margin: 50px auto;
+}
+.carousel-indicators {
+  margin-bottom: 0px;
+}
+.smallProductPhoto,
+.employeePhoto {
+  max-block-size: 250px;
+  max-inline-size: 100%;
+}
+.productReviewIntro {
+  padding-left: 15px;
+  padding-top: 10px;
+}
+footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding-top: 25px;
+  color: whitesmoke;
+}
+.footer {
+  font-size: small;
+}
+.copyright {
+  font-size: 60%;
+  text-align: center;
+}
+ul {
+  list-style: none;
+}
+hr {
+  border: 2px solid #209CA0;
+  border-radius: 2px;
+  margin: 50px auto;
+  width: calc(100vw - 80px);
+}
+hr.footer {
+  visibility: hidden;
+}
+hr.partial {
+  width: 75%;
+  border: 1px solid #209CA0;
+  border-radius: 1px;
+  margin: auto;
+}
+a {
+  color: #209CA0;
+}
+a:hover {
+  color: #0f494b;
+}
+h5.ReviewTitle {
+  padding-top: 20px;
+}
+/* From my WK 2 stylesheet  */
+button {
+  background-color: #f2b423;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 1px solid whitesmoke;
+  padding: 10px;
+  color: #212529;
+  font-weight: bold;
+}
+.nav-button:active:hover {
+  background-color: #212529;
+  color: whitesmoke;
+  border: 1px solid whitesmoke;
+}
+.nav-button:hover {
+  background-color: #212529;
+  border: 1px solid #212529;
+  color: whitesmoke;
+}
+.inputLabel {
+  font-size: 16px;
+  font-weight: bold;
+  padding-right: 12px;
+}
+input.inputField {
+  padding: 7px;
+  border: 1px solid #212529;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+}
+input.emptyInputField {
+  padding: 7px;
+  border: 3px solid red;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+}
+input.satisfiedInputField {
+  padding: 7px;
+  border: 3px solid #2df370;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+}
+input.inputField:focus,
+input.emptyInputField:focus,
+input.satisfiedInputField:focus {
+  outline: none;
+  border: 1px solid #212529;
+}
+input {
+  margin: 10px 0 10px 0;
+}
+.warning {
+  background-color: #f2b423;
+  font-weight: bold;
+  color: #755407;
+  padding: 15px;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 3px solid #755407;
+}
+.danger {
+  background-color: red;
+  font-weight: bold;
+  color: #660000;
+  padding: 15px;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 3px solid #660000;
+}
+.success {
+  background-color: #2df370;
+  font-weight: bold;
+  color: #078030;
+  padding: 15px;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
+  border: 3px solid #078030;
+}
+@media screen and (max-width: 575px) {
+  body {
+    padding-bottom: 540px;
+  }
+  .navbar-brand {
+    margin: auto;
+    padding-left: 56px;
+  }
+  h5.ReviewTitle,
+  p,
+  h3,
+  .footer-nav-link,
+  .company-info,
+  .footer,
+  .footer-nav,
+  .footer-nav-item {
+    text-align: center;
+  }
+  .footer-nav,
+  .footer-nav-item {
+    margin: auto;
+    padding: 0px;
+  }
+  .productReviewIntro {
+    padding-left: 0px;
+  }
+  .company-info {
+    margin-top: 30px;
+  }
+  .footer {
+    margin-bottom: 25px;
+    padding-left: 0px;
+  }
+  hr.footer {
+    padding: 0px;
+    visibility: visible;
+  }
+}
