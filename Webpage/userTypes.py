@@ -45,7 +45,7 @@ class User:
         self.userSession = this_session
         self.userAccount = user_account
         self.message = ""
-        self.headerContents = [{'name': "Logout", 'link': "/logout.html", 'pageID': "logout"}]
+        self.headerContents = [{'name': "Logout", 'link': "/logout", 'pageID': "logout"}]
     
     # def viewBlogPost(self, id) -> BlogPost:
     #     # Enter some default method to view a blog post (Facade?)
@@ -122,7 +122,7 @@ class LoggedOutUser(User):
         self.User = None
         self.userSession = None
         self.userAccount = None
-        self.headerContents = [{'name': "Home", 'link': "/", 'pageID': "index"}, {'name': "Login", 'link': "/login.html", 'pageID': "login"}]
+        self.headerContents = [{'name': "Home", 'link': "/", 'pageID': "index"}, {'name': "Login", 'link': "/login", 'pageID': "login"}]
     
     # def viewBlogPost, viewcomments,
 
@@ -168,7 +168,7 @@ class TenantUser(User):
         self.headerContents = [ {'name': "Rent",            'link': "/rent/",                           'pageID': "rent"}, \
                                 {'name': "Documents",       'link': "/solutions/",                      'pageID': "solutions"}, \
                                 # {'name': "Maintenance",     'link': "../product_reviews/index.html",    'pageID': "reviews"}, \
-                                {'name': "Logout",          'link': "/logout.html",                     'pageID': "logout"}]
+                                {'name': "Logout",          'link': "/logout",                     'pageID': "logout"}]
 
     # viewBlogPost() -> parent definition
     # viewComments() -> Parent definition
@@ -194,11 +194,12 @@ class TenantUser(User):
 class Property_Manager_User(User):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.headerContents = [ {'name': "Rent Roll",       'link': "/rent_roll/",                      'pageID': "rent"}, \
-                                {'name': "Properties",      'link': "/solutions/",                      'pageID': "solutions"}, \
-                                {'name': "People",          'link': "../product_reviews/index.html",    'pageID': "people"}, \
-                                # {'name': "Maintenance",     'link': "../product_reviews/index.html",    'pageID': "maintenance"}, \
-                                {'name': "Logout",          'link': "/logout.html",                     'pageID': "logout"}]
+        self.headerContents = [ {'name': "Rent Roll",       'link': "/rent_roll",       'pageID': "rent"}, \
+                                {'name': "Leases",          'link': "/leases",          'pageID': "leases"}, \
+                                {'name': "Properties",      'link': "/solutions",       'pageID': "solutions"}, \
+                                {'name': "People",          'link': "/people",          'pageID': "people"}, \
+                                # {'name': "Maintenance",     'link': "/maintenance",     'pageID': "maintenance"}, \
+                                {'name': "Logout",          'link': "/logout",          'pageID': "logout"}]
         
     # def viewBlogPost(self, id):
     #     return BlogPost.query.filter_by(ReviewID = id).first_or_404()

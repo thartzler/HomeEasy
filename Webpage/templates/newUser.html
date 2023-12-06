@@ -152,11 +152,11 @@
     <div class="container  contactUs">
         <div class="container">
             <div class="row d-flex justify-content-center">
-                <h1>Create a new account</h1>
+                <h1>Create a new landlord account</h1>
             </div>
             <div class="row d-flex justify-content-around">
                 <div class="col-sm-7 infoRequest">
-                    <form action="#" name="inquiryForm" id='newUserSignup' method="POST">
+                    <form action="api.hartzlerhome.solutions/newLandlord" name="inquiryForm" id='newUserSignup' method="POST">
                         <div class="row">
                             <div class="col-md-6">
                                 {{ form.firstName(class="inputField", onfocusout="validate(this)") }}
@@ -176,15 +176,23 @@
                         </div>
                         <div class="row">
                             <div class="col">
-                                {{ form.email(class="inputField", onfocusout="ValidateEmail(this)") }}
-                                {{ form.email.label(class="inputLabel") }}
+                                {{ form.emailAddress(class="inputField", onfocusout="ValidateEmail(this)") }}
+                                {{ form.emailAddress.label(class="inputLabel") }}
                             </div>
                             
                         </div>
                         <div class="row">
-                            <div class="col">
-                                {{ form.address(class="inputField", onfocusout="validate(this)") }}
-                                {{ form.address.label(class="inputLabel") }}
+                            <div class="col-md-3">
+                                {{ form.houseNumber(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.houseNumber.label(class="inputLabel") }}
+                            </div>
+                            <div class="col-md-7">
+                                {{ form.streetName(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.streetName.label(class="inputLabel") }}
+                            </div>
+                            <div class="col-md-2">
+                                {{ form.apptNo(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.apptNo.label(class="inputLabel") }}
                             </div>
                         </div>
 
@@ -204,8 +212,15 @@
                         </div>
                         <div class="row">
                             <div class="col">
-                                {{ form.phone(class="inputField", onfocusout="validate(this)") }}
-                                {{ form.phone.label(class="inputLabel") }}
+                                {{ form.companyPhoneNumber(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.companyPhoneNumber.label(class="inputLabel") }}
+                            </div>
+                            
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                {{ form.phoneNumber(class="inputField", onfocusout="validate(this)") }}
+                                {{ form.phoneNumber.label(class="inputLabel") }}
                             </div>
                             
                         </div>

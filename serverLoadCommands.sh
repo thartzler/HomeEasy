@@ -20,10 +20,10 @@ sudo apt-get install -y unixodbc-dev
 
 cd ~/HomeEasy/
 git pull
-sudo rm -r /var/www/HomeEasy-API/
-sudo cp -r ~/HomeEasy/API_Service /var/www/HomeEasy-API/
+sudo rm -r /var/www/HomeEasyAPI/
+sudo cp -r ~/HomeEasy/API_Service /var/www/HomeEasyAPI/
 
-cd /var/www/HomeEasy-API
+cd /var/www/HomeEasyAPI
 
 sudo python3 -m venv venv
 source venv/bin/activate

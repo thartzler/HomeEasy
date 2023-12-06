@@ -4,6 +4,7 @@ from azure import identity
 import pyodbc, struct, os
 import json, codecs
 import secrets
+import bcrypt
 import urllib.parse
 # from wtforms import Form, BooleanField, StringField, PasswordField, validators
 
@@ -40,13 +41,13 @@ def __make_token():
     """
     return secrets.token_urlsafe(50) 
 
-def isSessionValid(sessionID, username = None):
+def isSessionValid(sessionID, ipAddress = None):
     """ 
     checks if a given sessionID is still valid. If not, then remove it from the DB? (unless it's desired to keep all sessions in the db)
     """
 
-    if username:
-        preExistingSessions = userSession.query.filter_by(sessionID = sessionID, username = username).all()
+    if ipAddress:
+        preExistingSessions = userSession.query.filter_by(sessionID = sessionID, IPv4_ipAddress = ipAddress).all()
     else:
         preExistingSessions = userSession.query.filter_by(sessionID = sessionID).all()
     # tuple of all sessions in the db with the same session ID (should only be max 1)
@@ -116,6 +117,78 @@ def newSession(username, passHash):
     else:
         return False, "Multiple db records exist for the given username and passHash inputs"
 
+def newLandlordAccount(jsonData):
+
+    # 1. make address
+    # 2. make person
+    # 3. make userAccount
+    # 4. make company
+    # 5. make companyAuthority
+
+    requiredAttrs = ['addressDetails',
+                     'firstName', 'lastName', 'phoneNumber', 
+                     'emailAddress', 'passHash',
+                     'companyName', 'companyPhone']
+    for attribute in requiredAttrs:
+        if attribute not in jsonData:
+            print (jsonData)
+            return False, "Failed to create Landlord Account: Missing %s in jsonData"%attribute
+    try:
+        if 'additionalDetails' in jsonData:
+            additionalDetails = jsonData['additionalDetails']
+        else:
+            additionalDetails = None
+        newPerson = newPerson(
+            firstName = jsonData['firstName'], 
+            lastName = jsonData['lastName'], 
+            phoneNumber = jsonData['phoneNumber'], 
+            addressDetails = jsonData['addressDetails'],
+            additionalDetails=additionalDetails,
+            createPerson=None
+        )
+        
+        # accountTypeID = accountType.query.filter_by(typeName='landlord').all()
+        newUserAccount = userAccount(
+            userID = newPerson.personID,
+            accountTypeID = 4,#accountTypeID[0].accountTypeID
+            emailAddress = jsonData['emailAddress'],
+            passHash = jsonData['passHash'],
+            createDate = datetime.utcnow()
+        )
+        db.session.add(newUserAccount)
+        db.session.commit()
+
+        newCompany = company(
+            companyID = None,
+            companyName = jsonData['companyName'],
+            phoneNumber = jsonData['companyPhone'],
+            mailingAddress = newPerson.addressID,
+            billingAddress = newPerson.addressID,
+            emailInvoiceAddress = newUserAccount.emailAddress,
+            createdBy = newUserAccount.userID,
+            createDate = datetime.utcnow()
+        )
+        db.session.add(newCompany)
+        db.session.commit()
+
+
+        newCompanyRole = companyRole(
+            roleID = None,
+            companyID = newCompany.companyID,
+            userID = newUserAccount.userID,
+            roleTypeID = 5, #roleType.accountTypeID
+            role_began = datetime.utcnow(),
+            assignedUser = newUserAccount.userID,
+            role_end = None
+        )
+        db.session.add(newCompanyRole)
+        db.session.commit()
+
+        return True, newUserAccount
+    except:
+        return False, Exception
+
+
 def newPerson(firstName, lastName, phoneNumber, addressDetails = None, additionalDetails = None, createPerson = None):
     newPersonsAddress = address(
         **addressDetails
@@ -160,10 +233,10 @@ def newPerson(firstName, lastName, phoneNumber, addressDetails = None, additiona
         db.session.commit()
     return newPerson
 
-def getUserFromSessionID(requestHeader):
+def getUserFromSessionID(requestHeader, ipAddress = None):
     
     if 'userSessionID' in requestHeader:
-        isValid, sessionInfo = isSessionValid(requestHeader['userSessionID'])
+        isValid, sessionInfo = isSessionValid(requestHeader['userSessionID'], ipAddress)
         
         if isValid:
             #Now check if the person is authorized
@@ -212,7 +285,8 @@ db.init_app(app)
 class rentRoll(Resource):
 
     def get(self):
-        gotUser, userResponse = getUserFromSessionID(request.headers)
+
+        gotUser, userResponse = getUserFromSessionID(request.headers, request.remote_addr)
         
         if gotUser:
             print (userResponse)
@@ -224,36 +298,64 @@ class rentRoll(Resource):
         else:
             return userResponse, userResponse["response"]
     # return render_template('index.html', headerData = current_member.headerContents)
-class registerNewPerson(Resource):
+
+class adminPeople(Resource):
+
+    def get(self):
+        people = []
+        peopleList = person.query.filter_by().all()
+        for listedPerson in peopleList:
+            people.append({
+                'personID':   listedPerson.personID,
+                'firstName':   listedPerson.firstName,
+                'lastName':  listedPerson.lastName,
+                'phoneNumber': listedPerson.phoneNumber
+            })
+        return {"people": people}
+        gotUser, userResponse = getUserFromSessionID(request.headers, request.remote_addr)
+        
+        if gotUser:
+            print (userResponse)
+            data = {
+                'name': "Hello",
+                'id': "World"
+            }
+            return (data)
+        else:
+            return userResponse, userResponse["response"]
+    # return render_template('index.html', headerData = current_member.headerContents)
+
+
+class registerNewUser(Resource):
     
     def post(self):
-        requiredItems = ['firstName', 'lastName', 'phoneNumber']
+        # Must be sent through function on the webpage (can't be directly submitted)
+        # https://dev.to/amjadmh73/submit-html-forms-to-json-apis-easily-137l
+        accountJsonData = {}
+        requiredItems = ['address','firstName', 'lastName', 'phoneNumber', 'emailAddress', 'password','companyName', 'companyPhone', 'address']
+        addressRequirements = ['houseNumber', 'streetName','city','state','zipCode']
         requestData = request.get_json()
-        for items in requiredItems:
-            if items not in requestData:
-                return {'status': 400, 'message': "Missing '%s'"%items}, 400
-        
-        if 'address' in requestData:
-            addressData = requestData['address']
-            for addressComponent in ['houseNumber', 'streetName','city','state','zipCode']:
-                if addressComponent not in addressData:
-                    return {'status': 400, 'message': "Missing '%s' in the address"%addressComponent}, 400
-        
-        if 'additionalDetails' in requestData:
-            additionalDetails = requestData['additionalDetails']
+        for dataItem in requestData:
+            if dataItem in requiredItems:
+                requiredItems.remove(dataItem)
+                if dataItem == 'address':
+                    for addressComp in requestData[dataItem]:
+                        if addressComp in addressRequirements:
+                            addressRequirements.remove(addressComp)
+                        else:
+                            return {'status': 400, 'message': "Missing component in the address", "missingField": addressComponent}, 400
+                    accountJsonData['addressDetails'] = requestData[dataItem]
+                elif dataItem == 'password':
+                    accountJsonData['passHash'] = bcrypt.hashpw(bytes(requestData[dataItem]),bcrypt.gensalt())
+                else:
+                    accountJsonData[dataItem] = requestData[dataItem]
+            else:
+                return {'status': 400, 'message': "Missing a necessary piece of data to create the user", "missingField": items}, 400
+
+        if newLandlordAccount(accountJsonData)[0]:
+            return {'status': 200, 'message':'Success: Person details saved','personID':str(person.personID)}#,'redirectURL':'./home'}
         else:
-            additionalDetails = None
-        print (request.headers)
-        print ("\n\nRequest Data: ", request.get_json())
-        person = newPerson(
-            firstName = requestData['firstName'], 
-            lastName = requestData['lastName'], 
-            phoneNumber = requestData['phoneNumber'], 
-            addressDetails = addressData,
-            additionalDetails=additionalDetails,
-            createPerson=None
-        )
-        return{'status': 200, 'message':'Success: Person details saved','personID':str(person.personID)}
+            return {'status': 400, 'message':'Failed to save','redirectURL':'#'}
     
 
 
@@ -279,9 +381,26 @@ class getRentRoll(Resource):
         else:
             return 'Unauthorized: You must be logged in to view this request', 401
 
+class getAccountType(Resource):
+    
+    def get(self):
+        requestData = request.get_json()
+
+        user = userSession.query.filter_by(sessionID = requestData["sessionID"], IPv4_ipAddress = requestData["ipAddress"]).all()
+        
+        if user:
+            userAccountType = user.sessionsOfUser.accountAuthority.typeName
+            if userAccountType:
+                return {"userType":userAccountType}
+        
+        return {'userType':''}
+
 api.add_resource(rentRoll, '/rent')
 api.add_resource(getRentRoll, '/admin/rent/roll')
-api.add_resource(registerNewPerson, '/admin/people/add')
+api.add_resource(adminPeople, '/admin/people')
+api.add_resource(registerNewUser, '/newLandlord')
+
+api.add_resource(getAccountType, '/getAuthority')
 
 def get_conn():
     # credential = identity.DefaultAzureCredential(exclude_interactive_browser_credential=True)

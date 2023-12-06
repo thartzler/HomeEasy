@@ -1,5 +1,5 @@
 from flask import Flask, render_template, url_for, request, redirect
-import json
+import json, requests
 from wtforms import Form, BooleanField, StringField, PasswordField, validators
 
 from datetime import datetime, timedelta
@@ -15,12 +15,15 @@ class newUserForm(Form):
     firstName= StringField('First Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+')])
     lastName= StringField('Last Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+')])
     companyName= StringField('Company Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+')])
-    email= StringField('Email Address*', [validators.DataRequired()])
-    address= StringField('Address*', [validators.DataRequired()])
+    emailAddress= StringField('Email Address*', [validators.DataRequired()])
+    houseNumber= StringField('House No.*', [validators.DataRequired()])
+    streetName= StringField('Street*', [validators.DataRequired()])
+    apptNo= StringField('Appt No.')
     city= StringField('City*', [validators.DataRequired()])
     state= StringField('State*', [validators.DataRequired(), validators.Regexp('[A-Z]{2}')])
     zipCode= StringField('Zip Code*', [validators.DataRequired(), validators.Regexp('[0-9]+')])
-    phone= StringField('Phone Number*', [validators.DataRequired()])
+    companyPhoneNumber= StringField('Company Phone*', [validators.DataRequired()])
+    phoneNumber= StringField('Personal Phone Number*', [validators.DataRequired()])
     password= PasswordField('Password*', [
             validators.DataRequired(),\
             validators.EqualTo('password_confirm', message='Passwords must match!')\
@@ -39,7 +42,19 @@ db.init_app(app)
 
 
 
-
+def getCurrentMember(req: request):
+    ipAddress = req.remote_addr
+    reqData = req.get_json()
+    if hasattr(req.headers, 'sessionID'):
+        sessionID = req.headers['sessionID']
+        url = 'api.hartzlerhome.solutions/getAuthority'
+        payload = json.dumps({"sessionID": sessionID, "ipAddress": ipAddress})
+        headers = {
+        'Content-Type': 'application/json'
+        }
+        response = requests.request("GET",url, headers=headers, data=payload)
+        return response
+    return None
 current_member = UserMaker().MakeUser()
 
 # current_state = LoggedOutState()
@@ -48,19 +63,20 @@ current_member = UserMaker().MakeUser()
 def index():
     return render_template('index.html', headerData = current_member.headerContents)
 
-@app.route('/solutions/')
+@app.route('/solutions')
 def solutions():
     dbSolutions = Department.query.filter_by(IsSolution = 1).all()
     return render_template('solutions/index.html', headerData = current_member.headerContents, solutions = dbSolutions)
 
-@app.route('/rent_roll/')
+@app.route('/rent_roll')
 def rent_roll():
+    current_member = getCurrentMember(request)
     rentRollList = property.query.all()
     monthlist = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
     rentRollList = []
     return render_template('admin/rent/rent_roll.html', headerData = current_member.headerContents, rentRollList = rentRollList, monthlist=monthlist)
 
-@app.route('/login.html', methods = ['GET', 'POST'])
+@app.route('/login', methods = ['GET', 'POST'])
 def loginPage():
     if request.method == 'POST':
         global current_member

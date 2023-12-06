@@ -112,8 +112,7 @@ class userAccount(db.Model):
     accountTypeID = db.Column(db.Integer, db.ForeignKey("appAccountTypes.accountTypeID"))
     emailAddress =  db.Column(db.Text, nullable = False)
     emailVerified = db.Column(db.BINARY, nullable = False, server_default=bin(0))
-    passHash =      db.Column(db.VARCHAR(50), nullable = False)
-    salt =          db.Column(db.VARCHAR(50), nullable = True)
+    passHash =      db.Column(db.VARCHAR(72), nullable = False)
     createDate =    db.Column(db.Date, nullable = False)
     attemptsSinceLastLogin = db.Column(db.Integer, nullable = False, server_default = '0')
 
@@ -403,6 +402,7 @@ class userSession(db.Model):
     __tablename__ = 'userSessions'
     sessionID =     db.Column(db.VARCHAR(50), primary_key=True, nullable=False)
     userID =        db.Column(db.Integer, db.ForeignKey('userAccounts.userID'), nullable=False)
+    IPv4_ipAddress =db.Column(db.VARCHAR(15), nullable = False)
     loginDatetime = db.Column(db.DateTime, nullable = False)
     expiredDatetime = db.Column(db.DateTime, nullable = False)
     nextDatetime = db.Column(db.DateTime, nullable = False)
