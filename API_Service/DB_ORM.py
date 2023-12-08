@@ -110,7 +110,7 @@ class userAccount(db.Model):
     __tablename__ = 'userAccounts'
     userID =        db.Column(db.Integer, db.ForeignKey("userPeople.personID"), primary_key=True, nullable = True)
     accountTypeID = db.Column(db.Integer, db.ForeignKey("appAccountTypes.accountTypeID"))
-    emailAddress =  db.Column(db.Text, nullable = False)
+    emailAddress =  db.Column(db.Text, nullable = False, unique = True)
     emailVerified = db.Column(db.BINARY, nullable = False, server_default=bin(0))
     passHash =      db.Column(db.VARCHAR(72), nullable = False)
     createDate =    db.Column(db.Date, nullable = False)

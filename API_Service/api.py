@@ -206,7 +206,7 @@ def newPerson(firstName, lastName, phoneNumber, addressDetails = None, additiona
     )
     db.session.add(newPerson)
     db.session.commit()
-    print ('additionalDetails: ', additionalDetails)
+    # print ('additionalDetails: ', additionalDetails)
     if additionalDetails:
         for detailItem in additionalDetails:
             detailOption = personDetailOption.query.filter_by(propertyName = detailItem).all()
