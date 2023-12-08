@@ -133,12 +133,12 @@ def newLandlordAccount(jsonData):
         if attribute not in jsonData:
             print (jsonData)
             return False, "Failed to create Landlord Account: Missing %s in jsonData"%attribute
-    try:
+    # try:
         if 'additionalDetails' in jsonData:
             additionalDetails = jsonData['additionalDetails']
         else:
             additionalDetails = None
-        newPerson = newPerson(
+        __newUser = newPerson(
             firstName = jsonData['firstName'], 
             lastName = jsonData['lastName'], 
             phoneNumber = jsonData['phoneNumber'], 
@@ -149,7 +149,7 @@ def newLandlordAccount(jsonData):
         
         # accountTypeID = accountType.query.filter_by(typeName='landlord').all()
         newUserAccount = userAccount(
-            userID = newPerson.personID,
+            userID = __newUser.personID,
             accountTypeID = 4,#accountTypeID[0].accountTypeID
             emailAddress = jsonData['emailAddress'],
             passHash = jsonData['passHash'],
@@ -162,8 +162,8 @@ def newLandlordAccount(jsonData):
             companyID = None,
             companyName = jsonData['companyName'],
             phoneNumber = jsonData['companyPhone'],
-            mailingAddress = newPerson.addressID,
-            billingAddress = newPerson.addressID,
+            mailingAddress = __newUser.addressID,
+            billingAddress = __newUser.addressID,
             emailInvoiceAddress = newUserAccount.emailAddress,
             createdBy = newUserAccount.userID,
             createDate = datetime.utcnow()
@@ -177,7 +177,7 @@ def newLandlordAccount(jsonData):
             companyID = newCompany.companyID,
             userID = newUserAccount.userID,
             roleTypeID = 5, #roleType.accountTypeID
-            role_began = datetime.utcnow(),
+            role_begin = datetime.utcnow(),
             assignedUser = newUserAccount.userID,
             role_end = None
         )
@@ -185,8 +185,8 @@ def newLandlordAccount(jsonData):
         db.session.commit()
 
         return True, newUserAccount
-    except:
-        return False, Exception
+    # except Exception as e:
+    #     return False, e
 
 
 def newPerson(firstName, lastName, phoneNumber, addressDetails = None, additionalDetails = None, createPerson = None):
@@ -207,30 +207,31 @@ def newPerson(firstName, lastName, phoneNumber, addressDetails = None, additiona
     db.session.add(newPerson)
     db.session.commit()
     print ('additionalDetails: ', additionalDetails)
-    for detailItem in additionalDetails:
-        detailOption = personDetailOption.query.filter_by(propertyName = detailItem).all()
-        print('Detail Option: ', detailOption)
-        if len(detailOption) == 0:
-            detailOption = personDetailOption(
-                propertyName = str(detailItem)
+    if additionalDetails:
+        for detailItem in additionalDetails:
+            detailOption = personDetailOption.query.filter_by(propertyName = detailItem).all()
+            print('Detail Option: ', detailOption)
+            if len(detailOption) == 0:
+                detailOption = personDetailOption(
+                    propertyName = str(detailItem)
+                )
+                db.session.add(detailOption)
+                db.session.commit()
+            else:
+                detailOption = detailOption[0]
+            if createPerson and hasattr(createPerson, 'personID'):
+                createPersonID = createPerson.personID
+            else: createPersonID = newPerson.personID
+            newDetail = personDetail(
+                personID =      newPerson.personID,
+                detailID =      detailOption.detailID,
+                rev =           0,
+                propertyValue = additionalDetails[detailItem],
+                setDate =       datetime.utcnow(),
+                setPersonID =   createPersonID
             )
-            db.session.add(detailOption)
+            db.session.add(newDetail)
             db.session.commit()
-        else:
-            detailOption = detailOption[0]
-        if createPerson and hasattr(createPerson, 'personID'):
-            createPersonID = createPerson.personID
-        else: createPersonID = newPerson.personID
-        newDetail = personDetail(
-            personID =      newPerson.personID,
-            detailID =      detailOption.detailID,
-            rev =           0,
-            propertyValue = additionalDetails[detailItem],
-            setDate =       datetime.utcnow(),
-            setPersonID =   createPersonID
-        )
-        db.session.add(newDetail)
-        db.session.commit()
     return newPerson
 
 def getUserFromSessionID(requestHeader, ipAddress = None):
@@ -332,7 +333,7 @@ class registerNewUser(Resource):
         # Must be sent through function on the webpage (can't be directly submitted)
         # https://dev.to/amjadmh73/submit-html-forms-to-json-apis-easily-137l
         accountJsonData = {}
-        requiredItems = ['address','firstName', 'lastName', 'phoneNumber', 'emailAddress', 'password','companyName', 'companyPhone', 'address']
+        requiredItems = ['address','firstName', 'lastName', 'phoneNumber', 'emailAddress', 'password','companyName', 'companyPhone']
         addressRequirements = ['houseNumber', 'streetName','city','state','zipCode']
         requestData = request.get_json()
         for dataItem in requestData:
@@ -343,20 +344,22 @@ class registerNewUser(Resource):
                         if addressComp in addressRequirements:
                             addressRequirements.remove(addressComp)
                     if len(addressRequirements)>=1:
-                        return {'status': 400, 'message': "Missing component in the address", "missingField(s)": addressRequirements}, 400
+                        return {'status': 400, 'message': "Missing component(s) in the address", "missingField(s)": addressRequirements}, 400
                     accountJsonData['addressDetails'] = requestData[dataItem]
                 elif dataItem == 'password':
-                    accountJsonData['passHash'] = bcrypt.hashpw(bytes(requestData[dataItem]),bcrypt.gensalt())
+                    accountJsonData['passHash'] = bcrypt.hashpw(requestData[dataItem].encode('utf-8'),bcrypt.gensalt())
                 else:
                     accountJsonData[dataItem] = requestData[dataItem]
             
         if len(requiredItems) >=1:
-            return {'status': 400, 'message': "Missing a necessary piece of data to create the user", "missingField(s)": requiredItems}, 400
+            return {'status': 400, 'message': "Missing necessary information to create a new user", "missingField(s)": requiredItems}, 400
 
-        if newLandlordAccount(accountJsonData)[0]:
-            return {'status': 200, 'message':'Success: Person details saved','personID':str(person.personID)}#,'redirectURL':'./home'}
+        wasCreated, result = newLandlordAccount(accountJsonData)
+        if wasCreated:
+            return {'status': 200, 'message':'Success: Person details saved','userID':str(result.userID)}#,'redirectURL':'./home'}
         else:
-            return {'status': 400, 'message':'Failed to save','redirectURL':'#'}
+            print ( dir(result))
+            return {'status': 400, 'message':'Failed to save','error':str(result),'traceback':result.args,'redirectURL':'#'}
     
 
 
