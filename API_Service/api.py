@@ -353,10 +353,12 @@ class registerNewUser(Resource):
             
         if len(requiredItems) >=1:
             return {'status': 400, 'message': "Missing necessary information to create a new user", "missingField(s)": requiredItems}, 400
-
+        similarUsers = userAccount.query.filter_by(emailAddress = accountJsonData['emailAddress']).all()
+        if similarUsers:
+            return {'status': 403, 'message': "This username already exists: '%s'"%str(accountJsonData['emailAddress'])}, 403
         wasCreated, result = newLandlordAccount(accountJsonData)
         if wasCreated:
-            return {'status': 200, 'message':'Success: Person details saved','userID':str(result.userID)}#,'redirectURL':'./home'}
+            return {'status': 201, 'message':'Success: Person details saved','userID':str(result.userID)}, 201#,'redirectURL':'./home'}
         else:
             print ( dir(result))
             return {'status': 400, 'message':'Failed to save','error':str(result),'traceback':result.args,'redirectURL':'#'}
