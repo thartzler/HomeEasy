@@ -343,14 +343,14 @@ class registerNewUser(Resource):
                         if addressComp in addressRequirements:
                             addressRequirements.remove(addressComp)
                         else:
-                            return {'status': 400, 'message': "Missing component in the address", "missingField": addressComponent}, 400
+                            return {'status': 400, 'message': "Missing component in the address", "missingField": addressComp}, 400
                     accountJsonData['addressDetails'] = requestData[dataItem]
                 elif dataItem == 'password':
                     accountJsonData['passHash'] = bcrypt.hashpw(bytes(requestData[dataItem]),bcrypt.gensalt())
                 else:
                     accountJsonData[dataItem] = requestData[dataItem]
             else:
-                return {'status': 400, 'message': "Missing a necessary piece of data to create the user", "missingField": items}, 400
+                return {'status': 400, 'message': "Missing a necessary piece of data to create the user", "missingField": dataItem}, 400
 
         if newLandlordAccount(accountJsonData)[0]:
             return {'status': 200, 'message':'Success: Person details saved','personID':str(person.personID)}#,'redirectURL':'./home'}
