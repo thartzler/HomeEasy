@@ -31,7 +31,26 @@
     <!-- Script containing our data wrapped in a document.ready function -->
     <!-- <script type="text/javascript" src="{{ url_for('static', filename = 'js/globalData.js') }}"></script> -->
     {% block pageInfo %} {% endblock %}
-    
+    <script type="text/javascript">
+         async function submitPostHttpRequest(apiLink, headers, body) {
+            if (!apiLink || !headers || !body) {
+                throw new Error("One or more of the POST request args were not appropriate.");
+            }
+            try {
+                const rawResponse = await fetch(apiLink, {
+                    method: "POST", 
+                    headers: headers,
+                    body: JSON.stringify(body)
+                });
+                const jsonContent = await rawResponse.json();
+                return jsonContent;
+            }
+            catch(err) {
+                console.error(`Error while fetching POST : ${err}`);
+                throw err;
+            }
+        }
+    </script>
     <!-- Include script for font awesome icon library -->
     <script defer src="https://use.fontawesome.com/releases/v5.13.0/js/all.js"></script>
     <!-- <script defer src="https://use.fontawesome.com/releases/v5.0.6/js/all.js"></script> -->

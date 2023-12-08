@@ -22,11 +22,11 @@ class newUserForm(Form):
     city= StringField('City*', [validators.DataRequired()])
     state= StringField('State*', [validators.DataRequired(), validators.Regexp('[A-Z]{2}')])
     zipCode= StringField('Zip Code*', [validators.DataRequired(), validators.Regexp('[0-9]+')])
-    companyPhoneNumber= StringField('Company Phone*', [validators.DataRequired()])
+    companyPhone= StringField('Company Phone*', [validators.DataRequired()])
     phoneNumber= StringField('Personal Phone Number*', [validators.DataRequired()])
     password= PasswordField('Password*', [
             validators.DataRequired(),\
-            validators.EqualTo('password_confirm', message='Passwords must match!')\
+            validators.EqualTo('password_confirm', message='Passwords must already match!')\
         ])
     password_confirm= PasswordField('Verify Password*', [validators.DataRequired()])
 
@@ -101,10 +101,10 @@ def logoutPage():
     print (current_member.headerContents)
     return render_template('logout.html', headerData = current_member.headerContents)
 
-@app.route('/newUser.html',  methods = ['GET', 'POST'])
+@app.route('/newUser',  methods = ['GET', 'POST'])
 def newUserPage():
     form = newUserForm(request.form)
-    print(request.form)
+    # print(request.form)
     if request.method == 'POST' and form.validate():
         print("Valid Form")
         user = webSession
