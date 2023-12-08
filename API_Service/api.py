@@ -342,15 +342,16 @@ class registerNewUser(Resource):
                     for addressComp in requestData[dataItem]:
                         if addressComp in addressRequirements:
                             addressRequirements.remove(addressComp)
-                        else:
-                            return {'status': 400, 'message': "Missing component in the address", "missingField": addressComp}, 400
+                    if len(addressRequirements)>=1:
+                        return {'status': 400, 'message': "Missing component in the address", "missingField(s)": addressRequirements}, 400
                     accountJsonData['addressDetails'] = requestData[dataItem]
                 elif dataItem == 'password':
                     accountJsonData['passHash'] = bcrypt.hashpw(bytes(requestData[dataItem]),bcrypt.gensalt())
                 else:
                     accountJsonData[dataItem] = requestData[dataItem]
-            else:
-                return {'status': 400, 'message': "Missing a necessary piece of data to create the user", "missingField": dataItem}, 400
+            
+        if len(requiredItems) >=1:
+            return {'status': 400, 'message': "Missing a necessary piece of data to create the user", "missingField(s)": requiredItems}, 400
 
         if newLandlordAccount(accountJsonData)[0]:
             return {'status': 200, 'message':'Success: Person details saved','personID':str(person.personID)}#,'redirectURL':'./home'}
