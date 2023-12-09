@@ -39,7 +39,7 @@ def __make_token():
     """
     Creates a cryptographically-secure, URL-safe db.String
     """
-    return secrets.token_urlsafe(50) 
+    return secrets.token_urlsafe(37) 
 
 def isSessionValid(sessionID, ipAddress = None):
     """ 
@@ -57,30 +57,35 @@ def isSessionValid(sessionID, ipAddress = None):
         validUserSession = None
         
         for PES in preExistingSessions:
-            if datetime.utcnow() - timedelta(days=1) > PES.loginDatetime:
-                # print ("Removing old session - ", PES)
-                db.session.delete(PES)
-            elif validUserSession is not None:
-                # for some reason if there is more than 1 valid session, delete the previous valid session and mark the newly found session as valid user session
-                # print (validUserSession)
-                db.session.delete(validUserSession)
-                validUserSession = PES
+            if datetime.utcnow() <= PES.expiredDatetime:
+                # less than 7 days after initial signin
+                if datetime.utcnow() <= PES.nextDatetime:
+                    # less than 1 day since the last usage
+                    if validUserSession is not None:
+                        db.session.delete(validUserSession)
+                    validUserSession = PES
+                    # print ("Welcome, last activity was: ",PES.nextDateTime - timedelta(days= 1))
+                    PES.nextDatetime = datetime.utcnow() + timedelta(days= 1)
+                else:
+                    # print ("Deleting session since it wasn't used in the last 24 hrs")
+                    db.session.delete(PES)
             else:
-                validUserSession = PES
-
+                # print ("Deleting session since it has been 7 days since login")
+                db.session.delete(PES)
+                
         db.session.commit()
-        return True, validUserSession
-    else:
-        # print ("Session has expired")
+        if validUserSession:
+            return True, validUserSession
         return False, "Session has expired"
+    return False, "No such session"
 
-def deleteUsersSessions(username):
+def deleteUsersSessions(user):
     """
     Blindly delets all the user sessions in the db for a given username
     """
-    oldSession = userSession.query.filter_by(username = username).all()
-    for sessn in oldSession:
-        db.session.delete(sessn)
+    userAccountSessions = userSession.query.filter_by(userID = user.userID).all()
+    for session in userAccountSessions:
+        db.session.delete(session)
     db.session.commit()
 
 def isUsernameValid(username_entry):
@@ -91,31 +96,37 @@ def credentialsValid(username, passHash):
     User = userAccount.query.filter_by(username = username, passHash = passHash).all()
     return len(User)==1
 
-def newSession(username, passHash):
+def newSession(username, password, ipAddress):
     """
-    If the input username and passhash correspond to a user account, 
+    If the given username and passhash correspond to a user account, 
     all existing sessions are wiped out of the DB, it creates a new, unique sessionID and saves it to the db
     """
-    
-    User = userAccount.query.filter_by(username = username, passHash = passHash).all()
-    print (User)
-    if len(User)==1:
-        deleteUsersSessions(username)
+    User = None
+    UsersWithEmail = userAccount.query.filter_by(emailAddress = username).all()
+    for userWithEmail in UsersWithEmail:
+        if bcrypt.checkpw(password.encode('utf-8'), userWithEmail.passHash.encode('utf-8')):
+            if User:
+                print("ERROR: Multiple db records exist for the given username and passHash inputs")
+            User = userWithEmail
+    if User:
+        print (User)
+        deleteUsersSessions(User)
         #Create a new sessionID
         newSessionID = str(__make_token())
 
         while isSessionValid(newSessionID)[0]:
             # if the sessionID is currently in the DB, make a new one
+            print ("Duplicate SessionID found")
             newSessionID = str(__make_token())
-            print ("HERE")
-        newSession = userSession(sessionID = newSessionID, username = str(User[0].username), loginDatetime = datetime.utcnow())
-        db.session.add(newSession)
+        session2Add = userSession(sessionID = newSessionID, userID = str(User.userID), IPv4_ipAddress = ipAddress, loginDatetime = datetime.utcnow(), expiredDatetime = datetime.utcnow()+timedelta(days = 7), nextDatetime = datetime.utcnow()+timedelta(days = 1))
+        # Basically the session expires after 7 days regardless. If the usersession gets queried, the nextDatetime gets changed to current time + 1 day. The session expires when current time is after either nextDatetime or expiredDatetime
+        db.session.add(session2Add)
         db.session.commit()
-        return newSession, "New session has been made"
-    elif len(User) == 0:
-        return False, "Incorrect username or password"
+        return {'result': True, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
+    elif UsersWithEmail:
+        return {'result': False, 'message': "Incorrect password"}
     else:
-        return False, "Multiple db records exist for the given username and passHash inputs"
+        return {'result': False, 'message': "Incorrect username"}
 
 def newLandlordAccount(jsonData):
 
@@ -241,7 +252,7 @@ def getUserFromSessionID(requestHeader, ipAddress = None):
         
         if isValid:
             #Now check if the person is authorized
-            print(sessionInfo.sessionsOfUser)
+            print(sessionInfo.sessionUser)
             # rows=[]
             # appPaymentStatuses = property.query.filter_by().all()
             # for status in appPaymentStatuses:
@@ -250,7 +261,7 @@ def getUserFromSessionID(requestHeader, ipAddress = None):
             #         'statusName':  status.statusName,
             #         'isCompleted': status.isCompleted!=b''#, 'big')
             #     })
-            return True, sessionInfo.sessionsOfUser
+            return True, sessionInfo.sessionUser
         return False, {"response": 401,
                 "message": "Unauthorized: %s"%(sessionInfo)}
     else:
@@ -358,7 +369,7 @@ class registerNewUser(Resource):
             return {'status': 403, 'message': "This username already exists: '%s'"%str(accountJsonData['emailAddress'])}, 403
         wasCreated, result = newLandlordAccount(accountJsonData)
         if wasCreated:
-            return {'status': 201, 'message':'Success: Person details saved','userID':str(result.userID)}, 201#,'redirectURL':'./home'}
+            return {'status': 201, 'message':'Success: User account has been created!','userID':str(result.userID)}, 201#,'redirectURL':'./home'}
         else:
             print ( dir(result))
             return {'status': 400, 'message':'Failed to save','error':str(result),'traceback':result.args,'redirectURL':'#'}
@@ -373,7 +384,7 @@ class getRentRoll(Resource):
             
             if isValid:
                 #Now check if the person is authorized
-                print(sessionInfo.sessionsOfUser)
+                print(sessionInfo.sessionUser)
                 rows=[]
                 appPaymentStatuses = property.query.filter_by().all()
                 for status in appPaymentStatuses:
@@ -387,15 +398,34 @@ class getRentRoll(Resource):
         else:
             return 'Unauthorized: You must be logged in to view this request', 401
 
+class createSessionID(Resource):
+    
+    def post(self):
+        requiredItems = ['username', 'password', 'ipAddress']
+        requestData = request.get_json()
+        accountJsonData = {}
+        for dataItem in requestData:
+            if dataItem in requiredItems:
+                requiredItems.remove(dataItem)
+                if dataItem == 'username':
+                    accountJsonData['emailAddress'] = requestData[dataItem]
+                else:
+                    accountJsonData[dataItem] = requestData[dataItem]
+            
+        if len(requiredItems) >=1:
+            return {'status': 400, 'message': "Missing necessary information to create a new user", "missingField(s)": requiredItems}, 400
+
+        return newSession(accountJsonData['emailAddress'], accountJsonData['password'], accountJsonData['ipAddress'])
+    
 class getAccountType(Resource):
     
     def get(self):
         requestData = request.get_json()
 
-        user = userSession.query.filter_by(sessionID = requestData["sessionID"], IPv4_ipAddress = requestData["ipAddress"]).all()
+        user = userSession.query.filter_by(sessionID = requestData["sessionID"], IPv4_ipAddress = requestData["ipAddress"]).first_or_404()
         
         if user:
-            userAccountType = user.sessionsOfUser.accountAuthority.typeName
+            userAccountType = user.sessionUser.accountAuthority.typeName
             if userAccountType:
                 return {"userType":userAccountType}
         
@@ -405,6 +435,7 @@ api.add_resource(rentRoll, '/rent')
 api.add_resource(getRentRoll, '/admin/rent/roll')
 api.add_resource(adminPeople, '/admin/people')
 api.add_resource(registerNewUser, '/newLandlord')
+api.add_resource(createSessionID, '/createSessionID')
 
 api.add_resource(getAccountType, '/getAuthority')
 

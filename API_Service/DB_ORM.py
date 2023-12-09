@@ -17,14 +17,14 @@ class accountType(db.Model):
     __tablename__ = 'appAccountTypes'
     accountTypeID =     db.Column(db.Integer, primary_key=True, nullable = False)
     # cost =              db.Column(db.String, nullable = False)
-    accountTypeName =   db.Column(db.VARCHAR(40), nullable = False)
+    typeName =   db.Column(db.VARCHAR(40), nullable = False)
     typeDescription =   db.Column(db.VARCHAR(100), nullable = False)
 
     userAccountsWithAccountType = db.relationship('userAccount', back_populates='accountAuthority') #done
     companyRoleType = db.relationship('companyRole', back_populates='associatedAccountType')    #done
 
     def __repr__(self) -> str:
-        return "<accountType(Account Type Name = '%s')>" % self.accountTypeName
+        return "<accountType(Account Type Name = '%s')>" % self.typeName
 
 class feeType(db.Model):
     # This is the database relationship object for records in the appFeeTypes table
@@ -119,7 +119,7 @@ class userAccount(db.Model):
     accountAuthority =      db.relationship('accountType', back_populates='userAccountsWithAccountType')     #done
     accountPerson =         db.relationship('person', back_populates='personsAccount')              #done
     authoredPayment =       db.relationship('payment', back_populates='paymentCreator')             #done
-    userAccountSession =    db.relationship('userSession', back_populates='sessionsOfUser')         #done
+    userAccountSessions =   db.relationship('userSession', back_populates='sessionUser')            #done
     authoredProperty =      db.relationship('property', back_populates='propertyAuthor')            #done
     authoredLease =         db.relationship('lease', back_populates='leaseAuthor')                  #done
     authoredPaymentItems =  db.relationship('paymentItem', back_populates='paymentItemCreator')     #done
@@ -400,14 +400,14 @@ class userSession(db.Model):
     # This is the database relationship object for records in the userSessions table
     # Done
     __tablename__ = 'userSessions'
-    sessionID =     db.Column(db.VARCHAR(50), primary_key=True, nullable=False)
+    sessionID =     db.Column(db.NVARCHAR(50), primary_key=True, nullable=False)
     userID =        db.Column(db.Integer, db.ForeignKey('userAccounts.userID'), nullable=False)
     IPv4_ipAddress =db.Column(db.VARCHAR(15), nullable = False)
     loginDatetime = db.Column(db.DateTime, nullable = False)
     expiredDatetime = db.Column(db.DateTime, nullable = False)
     nextDatetime = db.Column(db.DateTime, nullable = False)
 
-    sessionsOfUser = db.relationship('userAccount', back_populates='userAccountSession')    #done
+    sessionUser = db.relationship('userAccount', back_populates='userAccountSessions')    #done
 
     def __repr__(self) -> str:
         return "<Session(ID = '%s')>" % self.sessionID

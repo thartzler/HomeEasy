@@ -307,8 +307,11 @@
                             // 2.1 User Interaction
                             const submitBtn = document.getElementById('submitButton');
                             const spinner = document.getElementById('loadingSpinner');
+                            const messageBox = document.getElementById('userMessage');
                             submitBtn.disabled = true;
                             spinner.classList.remove('hide');
+                            messageBox.setAttribute("class","")
+                            messageBox.innerText = ""
                             
                             setTimeout(() => submitBtn.disabled = false, 2400);
                             setTimeout(() => spinner.classList.add('hide'), 2400);
@@ -318,13 +321,25 @@
                             const headers = buildHeaders();
                             
                             const response = await submitPostHttpRequest(`http://api.hartzlerhome.solutions/newLandlord`, headers, jsonData);
-                            console.log(response);
-                            
-                            // if (response)
+                            if (response) {
+                                const status = response.status
+                                const jsonResponse = response.message
+                                spinner.classList.add('hide')
+                                console.log(jsonResponse)
+                                messageBox.innerText = jsonResponse
+                                
+                                if (status <300) {
+                                    messageBox.setAttribute("class","success")
+                                    setTimeout(() => document.location.href = '/login', 2500);
+                                } else {
+                                    messageBox.setAttribute("class","danger")
+
+                                    // submitBtn.disabled = false
+                                }
+                            }
                         }
                         
                         const newUserForm = document.querySelector("#newUserSignup");
-                        console.log(newUserForm)
                         if (newUserForm) {
                             newUserForm.addEventListener("submit", function(e) {
                                 submitForm(e, this);

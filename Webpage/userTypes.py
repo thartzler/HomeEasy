@@ -1,39 +1,44 @@
 # from app import Users, BlogPost, Session
 from DB_Object_Creator import db, userAccount, userSession, webSession, person
 from datetime import date, datetime
+from flask import request
+import requests, json
+
+
+def getUser(sessionID: str = None, ipAddress: str = None):
+    userType = None
+    if sessionID and ipAddress:
+        url = 'http://api.hartzlerhome.solutions/getAuthority'
+        payload = json.dumps({"sessionID": sessionID, "ipAddress": ipAddress})
+        headers = {
+        'Content-Type': 'application/json'
+        }
+        responseData = requests.request("GET",url, headers=headers, data=payload).json()
+        userType =  responseData['userType']
+
+    return UserMaker.MakeUser(userType)
+    
 
 
 
 class UserMaker:
 
-    def MakeUser(self, sessionID = None):
+    def MakeUser(self, userType = None):
         '''
-        If the sessionID is valid, find out the type of user based on the username
-        Then, create the corresponding type of user by feeding in the DB userAccount object
+        If the userType is not none, then it's already been validated with the db and the user is currently logged in
+        Then, create the corresponding type of user is created
         '''
-        if sessionID is not None:
+        if userType:
             # determine what member type this sessionID is and make the corresponding type
-            (result, info) = webSession().isSessionValid(sessionID)
-            if result:
-                # This means info = a valid webSession
-                user = info.user
-
-                try:
-                    user_account = userAccount.query.filter_by(username = info.username).first()
-                    if user_account.accountType == 1:
-                        # Admin user type. It's a global access account and is only for me
-                        return AdminUser(user, info, user_account)
-                    elif user_account.accountType == 2:
-                        # Property manager's user type. It is a paid account and can create properties, create tenant users, and enter payments
-                        return Property_Manager_User(user, info, user_account)
-                    elif user_account.accountType == 3:
-                        # Tenant's user type. It gets created by the property manager and can be used to view the payment status, etc.
-                        return TenantUser(user, info, user_account)
-                except:
-                    user_account = userAccount(username = info.username, emailAddress = "", accountType = 2, createDate = datetime.utcnow())
-                    db.session.add(user_account)
-                    db.session.commit()
-                    return TenantUser(user, info, user_account)
+            if userType == 'level1Admin':
+                # Admin user type. It's a global access account and is only for me
+                return AdminUser()
+            elif userType == 'landlord':
+                # Property manager's user type. It is a paid account and can create properties, create tenant users, and enter payments
+                return Property_Manager_User()
+            elif userType == 'tenant':
+                # Tenant's user type. It gets created by the property manager and can be used to view the payment status, etc.
+                return TenantUser()
         
         return LoggedOutUser()
 
@@ -148,19 +153,21 @@ class LoggedOutUser(User):
         pass
 
     def createAnAccount(self, username, passHash, firstName, lastName, address, emailAddress, phoneNumber):
-        newUser = userAccount(username = username, accountType=2, emailAddress = emailAddress, passHash = passHash)
-        try:
+        pass
+        #FUTURE: Make this function interact with the API?
+        # newUser = userAccount(username = username, accountType=2, emailAddress = emailAddress, passHash = passHash)
+        # try:
             
-            db.session.add(newUser)
-            db.session.commit()
-            newPerson = person(firstName = firstName, lastName = lastName, phoneNumber = phoneNumber, DOB="unknown", createdBy=newUser)
-            db.session.add(newPerson)
-            db.session.commit()
-            newUser.personID = newPerson.personID
-            db.session.update(newPerson)
-            db.session.commit()
-        except:
-            return False, "There was an error saving the account to the DB"
+        #     db.session.add(newUser)
+        #     db.session.commit()
+        #     newPerson = person(firstName = firstName, lastName = lastName, phoneNumber = phoneNumber, DOB="unknown", createdBy=newUser)
+        #     db.session.add(newPerson)
+        #     db.session.commit()
+        #     newUser.personID = newPerson.personID
+        #     db.session.update(newPerson)
+        #     db.session.commit()
+        # except:
+        #     return False, "There was an error saving the account to the DB"
         
 class TenantUser(User):
     def __init__(self, *args, **kwargs) -> None:
@@ -217,7 +224,7 @@ class Property_Manager_User(User):
 class AdminUser(User):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.userAccount = userAccount.query.filter_by(Username = self.User.Username).first_or_404()
+        # self.userAccount = userAccount.query.filter_by(Username = self.User.Username).first_or_404()
         self.headerContents = [ {'name': "Rent Roll",       'link': "/rent_roll/",                      'pageID': "rent"}, \
                                 {'name': "Properties",      'link': "/solutions/",                      'pageID': "solutions"}, \
                                 {'name': "People",          'link': "../product_reviews/index.html",    'pageID': "people"}, \
