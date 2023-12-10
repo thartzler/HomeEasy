@@ -14,104 +14,67 @@ def getUser(sessionID: str = None, ipAddress: str = None):
         'Content-Type': 'application/json'
         }
         responseData = requests.request("GET",url, headers=headers, data=payload).json()
+        print ("jsonResponse from getAuthority: ", responseData)
         userType =  responseData['userType']
-
-    return UserMaker.MakeUser(userType)
+        print ("UserType: ", userType)
+    return UserMaker().MakeUser(userType = userType, sessionID = sessionID)
     
 
 
 
 class UserMaker:
 
-    def MakeUser(self, userType = None):
+    def MakeUser(self, userType = None, sessionID = None):
         '''
         If the userType is not none, then it's already been validated with the db and the user is currently logged in
         Then, create the corresponding type of user is created
         '''
+        print ("Making User of type : ", userType)
         if userType:
             # determine what member type this sessionID is and make the corresponding type
             if userType == 'level1Admin':
                 # Admin user type. It's a global access account and is only for me
-                return AdminUser()
+                return AdminUser(sessionID = sessionID)
             elif userType == 'landlord':
                 # Property manager's user type. It is a paid account and can create properties, create tenant users, and enter payments
-                return Property_Manager_User()
+                return Property_Manager_User(sessionID = sessionID)
             elif userType == 'tenant':
                 # Tenant's user type. It gets created by the property manager and can be used to view the payment status, etc.
-                return TenantUser()
+                return TenantUser(sessionID = sessionID)
         
         return LoggedOutUser()
 
 
 
 class User:
-    def __init__(self, user = None, this_session = None, user_account = None,) -> None:
+    def __init__(self, user = None, sessionID = None, user_account = None,) -> None:
         self.User = user
-        self.userSession = this_session
+        self.userSession = sessionID
         self.userAccount = user_account
         self.message = ""
         self.headerContents = [{'name': "Logout", 'link': "/logout", 'pageID': "logout"}]
     
-    # def viewBlogPost(self, id) -> BlogPost:
-    #     # Enter some default method to view a blog post (Facade?)
-    #     pass
-    
-    # def viewComments(self, PostID) -> list:
-    #     # returns a list of comment items
-    #     returnList = []
-    #     comments = Comments.query.filter_by(ReviewID = PostID).limit(50).all()
-    #     for comment in comments:
-    #         returnList.append(comment)
-    #     return(returnList)
-
-    # def writeComment(self, postID, title, comment_text, CommentIDReplyingTo = None):
-    #     # Enter some default method to write a comment
-    #     newComment = Comments(ReviewID = postID, CommentDate = datetime.utcnow(), Title = title, CommentText = comment_text, Username = self.User.Username, ReplyingTo = CommentIDReplyingTo)
-    #     try:
-    #         db.session.add(newComment)
-    #         db.session.commit()
-    #         return True, "comment saved successfully"
-    #     except:
-    #         return False, "There was an error saving the new comment"
-
-    # def deleteComment(self, commentID):
-    #     # Enter some default delete method in here
-    #     try:
-    #         comment = Comments.query.filter_by(CommentID = commentID).first_or_404()
-    #         db.session.delete(comment)
-    #         db.session.commit()
-    #         return True, "the comment was deleted successfully"
-    #     except:
-    #         return False, "There was a problem trying to delete the comment"
-    
-    # def likeComment(self, commentID):
-    #     # Enter some default comment liking command
-    #     comment = Comments.query.filter_by(CommentID = commentID).first_or_404()
-    #     print ("{} liked {}'s comment titled {}"%(self.User.Username, comment.Username, comment.Title))
-    #     return
-    # 
-    # def likePost(self, postID):
-    #     # enter some default commands for liking a comment
-    #     post = BlogPost.query.filter_by(ReviewID = postID).first_or_404()
-    #     print ("{} liked the review titled {}!"%(self.User.Username, post.Title))
-    #     return
-
-    def Login(self, username, password):
+    def Login(self, username, password, ipAddress):
         #the user would login
-        ws = webSession()
-        if ws.isUsernameValid(username):
-            if ws.credentialsValid(username, password):
-                newSession = ws.newSession(username, password)[0]
-                self = UserMaker().MakeUser(newSession.sessionID)
-                return self
-            else:
-                self.message = "Incorrect Password"
-                return self
-        else:
-            self.message = "Invalid Username"
-            return self
         
-
+        url = 'http://api.hartzlerhome.solutions/createSessionID'
+        payload = json.dumps({"username": username, "password": password, "ipAddress": ipAddress})
+        headers = {'Content-Type': 'application/json'}
+        responseData = requests.request("POST",url, headers=headers, data=payload).json()
+        # {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
+        if responseData:
+            self.message = responseData['message']
+        else:
+            self.message = 'Error getting data'
+        if responseData['status'] == 200:
+            # print('authentication is valid')
+            # write a return the data
+            userType =  responseData['userType']
+            sessionID = responseData['sessionID']
+            self = UserMaker().MakeUser(userType=userType, sessionID= sessionID)
+            print ("This is me:", self)
+        return self
+    
     def Logout(self):
         # Already logged out, so nothing needs done.
         print ("I'm HERE")
@@ -147,11 +110,6 @@ class LoggedOutUser(User):
     #     #This isn't feasible unless logged in
     #     return False, "Please Login first"
 
-    def Logout(self):
-        # Already logged out, so nothing needs done.
-
-        pass
-
     def createAnAccount(self, username, passHash, firstName, lastName, address, emailAddress, phoneNumber):
         pass
         #FUTURE: Make this function interact with the API?
@@ -172,8 +130,8 @@ class LoggedOutUser(User):
 class TenantUser(User):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.headerContents = [ {'name': "Rent",            'link': "/rent/",                           'pageID': "rent"}, \
-                                {'name': "Documents",       'link': "/solutions/",                      'pageID': "solutions"}, \
+        self.headerContents = [ {'name': "Rent",            'link': "/rent",                           'pageID': "rent"}, \
+                                {'name': "Documents",       'link': "/solutions",                      'pageID': "solutions"}, \
                                 # {'name': "Maintenance",     'link': "../product_reviews/index.html",    'pageID': "reviews"}, \
                                 {'name': "Logout",          'link': "/logout",                     'pageID': "logout"}]
 
@@ -201,7 +159,7 @@ class TenantUser(User):
 class Property_Manager_User(User):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.headerContents = [ {'name': "Rent Roll",       'link': "/rent_roll",       'pageID': "rent"}, \
+        self.headerContents = [ {'name': "Rent Roll",       'link': "/rent",            'pageID': "rent"}, \
                                 {'name': "Leases",          'link': "/leases",          'pageID': "leases"}, \
                                 {'name': "Properties",      'link': "/solutions",       'pageID': "solutions"}, \
                                 {'name': "People",          'link': "/people",          'pageID': "people"}, \
@@ -225,8 +183,8 @@ class AdminUser(User):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         # self.userAccount = userAccount.query.filter_by(Username = self.User.Username).first_or_404()
-        self.headerContents = [ {'name': "Rent Roll",       'link': "/rent_roll/",                      'pageID': "rent"}, \
-                                {'name': "Properties",      'link': "/solutions/",                      'pageID': "solutions"}, \
+        self.headerContents = [ {'name': "Rent Roll",       'link': "/rent",                            'pageID': "rent"}, \
+                                {'name': "Properties",      'link': "/solutions",                       'pageID': "solutions"}, \
                                 {'name': "People",          'link': "../product_reviews/index.html",    'pageID': "people"}, \
                                 # {'name': "Maintenance",     'link': "../product_reviews/index.html",    'pageID': "maintenance"}, \
                                 {'name': "Logout",          'link': "/logout.html",                     'pageID': "logout"}]

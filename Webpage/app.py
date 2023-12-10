@@ -1,10 +1,10 @@
-from flask import Flask, render_template, url_for, request, redirect
+from flask import Flask, render_template, url_for, request, redirect, make_response
 import json
 from wtforms import Form, BooleanField, StringField, PasswordField, validators
 
 from datetime import datetime, timedelta
 import secrets
-from userTypes import getUser, TenantUser, Property_Manager_User, AdminUser
+from userTypes import getUser, TenantUser, Property_Manager_User, AdminUser,LoggedOutUser
 from DB_Object_Creator import db, Department, webSession, property
 
 # from SessionStates import LoggedInState, LoggedOutState
@@ -67,7 +67,9 @@ def solutions():
 @app.route('/rent')
 def rent_roll():
     current_member = getCurrentUser(request)
+    print ('currentMember: ', current_member)
     userType = type(current_member)
+    print ("userType: ", userType)
     if userType == TenantUser:
         return render_template('unauthorized.html', headerData = current_member.headerContents, loggedIn = True)
     elif userType in [Property_Manager_User, AdminUser]:
@@ -81,28 +83,39 @@ def rent_roll():
     
 
 
-@app.route('/login', methods = ['GET'])
+@app.route('/login', methods = ['GET', 'POST'])
 def loginPage():
     current_member = getCurrentUser(request)
     if request.method == 'POST':
-        current_member.Login(request.form['username'], request.form['password'])
+        current_member = current_member.Login(request.form['username'], request.form['password'], request.remote_addr)
         #user = webSession.newSession(request.form['username'], request.form['password'])
         print (current_member)
-        if hasattr(current_member, 'createAnAccount'):
-            return render_template('login.html', headerData = current_member.headerContents, comment = current_member.message)
+        if type(current_member) == LoggedOutUser:#[Property_Manager_User, AdminUser]:
+            # highlight the field that has the incorrect data, and refresh the page.
+            return render_template('login.html', headerData = current_member.headerContents, comment = current_member.message, username = request.form['username'])
         else:
-            print (current_member)
             if request.args.get('goto'):
-                return redirect(request.args.get('goto'))
+                resp = make_response(redirect(request.args.get('goto')))
             else:
-                return redirect('/')
+                resp = make_response(redirect('/rent'))
+            
+            resp.set_cookie('sessionID', current_member.userSession)
+            return resp
     # print(current_member)
-    return render_template('login.html', headerData = current_member.headerContents)
+    else:
+        if type(current_member) in [Property_Manager_User, AdminUser]:
+            return redirect('/rent')
+        else:
+            return render_template('login.html', headerData = current_member.headerContents)
 
 @app.route('/logout')
 def logoutPage():
+    
     current_member = getCurrentUser(request)
-    return render_template('logout.html', headerData = current_member.headerContents)
+    current_member = current_member.Logout()
+    resp = make_response(render_template('logout.html', headerData = current_member.headerContents))
+    resp.set_cookie('sessionID','', expires = 0)
+    return resp
 
 @app.route('/newUser',  methods = ['GET'])
 def newUserPage():
