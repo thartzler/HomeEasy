@@ -122,7 +122,7 @@ def newSession(username, password, ipAddress):
         # Basically the session expires after 7 days regardless. If the usersession gets queried, the nextDatetime gets changed to current time + 1 day. The session expires when current time is after either nextDatetime or expiredDatetime
         db.session.add(session2Add)
         db.session.commit()
-        return {'result': True, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
+        return {'result': True, 'message': "New session has been made", 'sessionID': session2Add.sessionID, 'userType': User.accountAuthority.typeName}
     elif UsersWithEmail:
         return {'result': False, 'message': "Incorrect password"}
     else:
@@ -420,9 +420,21 @@ class createSessionID(Resource):
 class getAccountType(Resource):
     
     def get(self):
+        requiredItems = ['sessionID', 'ipAddress']
         requestData = request.get_json()
+        jsonData = {}
+        for dataItem in requestData:
+            if dataItem in requiredItems:
+                requiredItems.remove(dataItem)
+                jsonData[dataItem] = requestData[dataItem]
 
-        user = userSession.query.filter_by(sessionID = requestData["sessionID"], IPv4_ipAddress = requestData["ipAddress"]).first_or_404()
+        if len(requiredItems) >=1:
+            return {'status': 400, 'message': "Missing necessary information to check sessionID", "missingField(s)": requiredItems}, 400
+        print ("REQ: ", requestData)
+        print ('Jsondata: ', jsonData)
+        print ('Reqdata: ', requiredItems)
+        
+        user = userSession.query.filter_by(sessionID = requestData["sessionID"], IPv4_ipAddress = requestData["ipAddress"]).first()
         
         if user:
             userAccountType = user.sessionUser.accountAuthority.typeName
@@ -436,7 +448,6 @@ api.add_resource(getRentRoll, '/admin/rent/roll')
 api.add_resource(adminPeople, '/admin/people')
 api.add_resource(registerNewUser, '/newLandlord')
 api.add_resource(createSessionID, '/createSessionID')
-
 api.add_resource(getAccountType, '/getAuthority')
 
 def get_conn():

@@ -17,7 +17,7 @@ class accountType(db.Model):
     __tablename__ = 'appAccountTypes'
     accountTypeID =     db.Column(db.Integer, primary_key=True, nullable = False)
     # cost =              db.Column(db.String, nullable = False)
-    typeName =   db.Column(db.VARCHAR(40), nullable = False)
+    typeName =          db.Column(db.VARCHAR(40), nullable = False)
     typeDescription =   db.Column(db.VARCHAR(100), nullable = False)
 
     userAccountsWithAccountType = db.relationship('userAccount', back_populates='accountAuthority') #done
