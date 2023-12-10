@@ -122,11 +122,11 @@ def newSession(username, password, ipAddress):
         # Basically the session expires after 7 days regardless. If the usersession gets queried, the nextDatetime gets changed to current time + 1 day. The session expires when current time is after either nextDatetime or expiredDatetime
         db.session.add(session2Add)
         db.session.commit()
-        return {'result': True, 'message': "New session has been made", 'sessionID': session2Add.sessionID, 'userType': User.accountAuthority.typeName}
+        return {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID, 'userType': User.accountAuthority.typeName}, 200
     elif UsersWithEmail:
-        return {'result': False, 'message': "Incorrect password"}
+        return {'status': 400, 'message': "Incorrect password"}, 400
     else:
-        return {'result': False, 'message': "Incorrect username"}
+        return {'status': 400, 'message': "Incorrect username"}, 400
 
 def newLandlordAccount(jsonData):
 
