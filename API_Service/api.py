@@ -122,11 +122,11 @@ def newSession(username, password, ipAddress):
         # Basically the session expires after 7 days regardless. If the usersession gets queried, the nextDatetime gets changed to current time + 1 day. The session expires when current time is after either nextDatetime or expiredDatetime
         db.session.add(session2Add)
         db.session.commit()
-        return {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID, 'userType': User.accountAuthority.typeName}, 200
+        return {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID, 'userType': User.accountAuthority.typeName}
     elif UsersWithEmail:
-        return {'status': 400, 'message': "Incorrect password"}, 400
+        return {'status': 400, 'message': "Incorrect password"}
     else:
-        return {'status': 400, 'message': "Incorrect username"}, 400
+        return {'status': 400, 'message': "Incorrect username"}
 
 def newLandlordAccount(jsonData):
 
@@ -414,8 +414,8 @@ class createSessionID(Resource):
             
         if len(requiredItems) >=1:
             return {'status': 400, 'message': "Missing necessary information to create a new user", "missingField(s)": requiredItems}, 400
-
-        return newSession(accountJsonData['emailAddress'], accountJsonData['password'], accountJsonData['ipAddress'])
+        session = newSession(accountJsonData['emailAddress'], accountJsonData['password'], accountJsonData['ipAddress'])
+        return session, session['status']
     
 class getAccountType(Resource):
     
