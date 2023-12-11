@@ -444,7 +444,7 @@ class adminProperties(Resource):
         # 'GET' request comes directly from the webpage on a client's browser.
         if 'sessionID' in request.cookies:
             ipAddress = request.remote_addr
-            ipAddress = request.headers['ipAddress']
+            # ipAddress = request.headers['ipAddress']
             isValid, sessionOrComment = isSessionValid(request.cookies['sessionID'], ipAddress=ipAddress)
             if isValid:
                 sessn = sessionOrComment
