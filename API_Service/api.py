@@ -174,68 +174,24 @@ def createProperty(jsonData):
 
     # 1. make property
 
-    requiredAttrs = ['addressDetails',
-                     'firstName', 'lastName', 'phoneNumber', 
-                     'emailAddress', 'passHash',
-                     'companyName', 'companyPhone']
+    requiredAttrs = ['companyID', 'addressID','bedroomCount','bathroomCount',
+                         'parkingCount', 'garageCount', 'storiesCount', 'homeType', 'yearBuilt',
+                         'purchasePrice', 'purchaseDate', 'schoolDistrict', 'nickname', 'createUser']
+    filteredJson = {}
     for attribute in requiredAttrs:
         if attribute not in jsonData:
             print (jsonData)
-            return False, "Failed to create Landlord Account: Missing %s in jsonData"%attribute
-    # try:
-        if 'additionalDetails' in jsonData:
-            additionalDetails = jsonData['additionalDetails']
-        else:
-            additionalDetails = None
-        addressID = createNewAddress(**jsonData['addressDetails'])
+            print ("Failed to create Property: Missing %s in jsonData"%attribute)
+            return False
+        filteredJson[attribute] = jsonData[attribute]
+    filteredJson['createDate'] = datetime.utcnow()
+    print ("FilteredJson: ", filteredJson)
+    newProperty = property(**filteredJson)
+    print ("New Property: ", newProperty)
+    db.session.add(newProperty)
+    db.session.commit()
 
-        __newUser = newPerson(
-            firstName = jsonData['firstName'], 
-            lastName = jsonData['lastName'], 
-            phoneNumber = jsonData['phoneNumber'], 
-            addressID = addressID,
-            additionalDetails=additionalDetails,
-            createPerson=None
-        )
-        
-        # accountTypeID = accountType.query.filter_by(typeName='landlord').all()
-        newUserAccount = userAccount(
-            userID = __newUser.personID,
-            accountTypeID = 4,#accountTypeID[0].accountTypeID
-            emailAddress = jsonData['emailAddress'],
-            passHash = jsonData['passHash'],
-            createDate = datetime.utcnow()
-        )
-        db.session.add(newUserAccount)
-        db.session.commit()
-
-        newCompany = company(
-            companyID = None,
-            companyName = jsonData['companyName'],
-            phoneNumber = jsonData['companyPhone'],
-            mailingAddress = addressID,
-            billingAddress = addressID,
-            emailInvoiceAddress = newUserAccount.emailAddress,
-            createdBy = newUserAccount.userID,
-            createDate = datetime.utcnow()
-        )
-        db.session.add(newCompany)
-        db.session.commit()
-
-
-        newCompanyRole = companyRole(
-            roleID = None,
-            companyID = newCompany.companyID,
-            userID = newUserAccount.userID,
-            roleTypeID = 5, #roleType.accountTypeID
-            role_begin = datetime.utcnow(),
-            assignedUser = newUserAccount.userID,
-            role_end = None
-        )
-        db.session.add(newCompanyRole)
-        db.session.commit()
-
-        return True, newUserAccount
+    return newProperty.propertyID
 
 
 def createNewAddress(houseNumber, streetName, city, state, zipCode, apptNo = None):
@@ -522,11 +478,13 @@ class adminProperties(Resource):
                             'garageSpaces':     prprty.garageCount,
                             'stories':          prprty.storiesCount,
                             'homeType':         prprty.homeType,
-                            'yearBuilt':        prprty.yearBuilt,
+                            'yearBuilt':        int(prprty.yearBuilt),
                             'purchasePrice':    prprty.purchasePrice,
-                            'purchaseDate':     prprty.purchaseDate,
+                            'purchaseDate':     prprty.purchaseDate.strftime("%Y-%m-%d"),
                             'schoolDistrict':   prprty.schoolDistrict,
                         }
+                        for propertyk in data:
+                            print (propertyk, type(data[propertyk]))
                         returnData['properties'].append(data)
 
                     return returnData, returnData['status']
@@ -579,6 +537,8 @@ class adminProperties(Resource):
                         return {'status': 400, 'message': "Failed to get the addressID"}, 400
                 elif dataItem in ['sessionID', 'ipAddress']:
                     pass
+                elif dataItem == 'purchaseDate':
+                    propertyJsonData[dataItem] = datetime.strptime(requestData[dataItem], '%Y-%m-%d').date()
                 else:
                     propertyJsonData[dataItem] = requestData[dataItem]
             
@@ -586,8 +546,8 @@ class adminProperties(Resource):
             return {'status': 400, 'message': "Missing necessary information to create a new user", "missingField(s)": requiredItems}, 400
         
         # All the data pieces needed is verified to be here. now verify authority
-        sessionID = propertyJsonData['sessionID']
-        ipAddress = propertyJsonData['ipAddress']
+        sessionID = requestData['sessionID']
+        ipAddress = requestData['ipAddress']
         isValid, sessionOrComment = isSessionValid(sessionID=sessionID, ipAddress=ipAddress)
         if isValid:
             sessn = sessionOrComment
@@ -596,7 +556,7 @@ class adminProperties(Resource):
 
             if (accntType in ['landlord'] and companyAuthority!= 'companyRead') or 'admin' in accntType.lower():
                 #Now the person is authorized to do this
-                propertyJsonData['companyID'] = sessn.sessionUser.companyRolePerson[0].associatedCompany
+                propertyJsonData['companyID'] = sessn.sessionUser.companyRolePerson[0].associatedCompany.companyID
                 propertyJsonData['createUser'] = sessn.sessionUser.userID
                 
                 newPropertyID = createProperty(propertyJsonData)
