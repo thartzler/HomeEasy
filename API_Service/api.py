@@ -9,31 +9,8 @@ import urllib.parse
 # from wtforms import Form, BooleanField, StringField, PasswordField, validators
 
 from datetime import datetime, timedelta
-# import secrets
-# from userTypes import UserMaker
 from DB_ORM import *#db, userSession, webSession, property
 
-# from SessionStates import LoggedInState, LoggedOutState
-
-
-# from DB_Object_Creator import 
-# class newUserForm(Form):
-#     firstName= StringField('First Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+')])
-#     lastName= StringField('Last Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+')])
-#     companyName= StringField('Company Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+')])
-#     email= StringField('Email Address*', [validators.DataRequired()])
-#     address= StringField('Address*', [validators.DataRequired()])
-#     city= StringField('City*', [validators.DataRequired()])
-#     state= StringField('State*', [validators.DataRequired(), validators.Regexp('[A-Z]{2}')])
-#     zipCode= StringField('Zip Code*', [validators.DataRequired(), validators.Regexp('[0-9]+')])
-#     phone= StringField('Phone Number*', [validators.DataRequired()])
-#     password= PasswordField('Password*', [
-#             validators.DataRequired(),\
-#             validators.EqualTo('password_confirm', message='Passwords must match!')\
-#         ])
-#     password_confirm= PasswordField('Verify Password*', [validators.DataRequired()])
-
-# class webSession:
 
 def __make_token():
     """
@@ -45,13 +22,13 @@ def isSessionValid(sessionID, ipAddress = None):
     """ 
     checks if a given sessionID is still valid. If not, then remove it from the DB? (unless it's desired to keep all sessions in the db)
     """
-
+    print ("CHECKING SESSION")
     if ipAddress:
         preExistingSessions = userSession.query.filter_by(sessionID = sessionID, IPv4_ipAddress = ipAddress).all()
     else:
         preExistingSessions = userSession.query.filter_by(sessionID = sessionID).all()
     # tuple of all sessions in the db with the same session ID (should only be max 1)
-
+    print ("PES: ",preExistingSessions)
     if len(preExistingSessions) > 0:
         # If the session exists, check the validity of it's date
         validUserSession = None
@@ -87,14 +64,6 @@ def deleteUsersSessions(user):
     for session in userAccountSessions:
         db.session.delete(session)
     db.session.commit()
-
-def isUsernameValid(username_entry):
-    User = userAccount.query.filter_by(username = username_entry).all()
-    return len(User)==1
-
-def credentialsValid(username, passHash):
-    User = userAccount.query.filter_by(username = username, passHash = passHash).all()
-    return len(User)==1
 
 def newSession(username, password, ipAddress):
     """
@@ -149,11 +118,13 @@ def newLandlordAccount(jsonData):
             additionalDetails = jsonData['additionalDetails']
         else:
             additionalDetails = None
+        addressID = createNewAddress(**jsonData['addressDetails'])
+
         __newUser = newPerson(
             firstName = jsonData['firstName'], 
             lastName = jsonData['lastName'], 
             phoneNumber = jsonData['phoneNumber'], 
-            addressDetails = jsonData['addressDetails'],
+            addressID = addressID,
             additionalDetails=additionalDetails,
             createPerson=None
         )
@@ -173,8 +144,8 @@ def newLandlordAccount(jsonData):
             companyID = None,
             companyName = jsonData['companyName'],
             phoneNumber = jsonData['companyPhone'],
-            mailingAddress = __newUser.addressID,
-            billingAddress = __newUser.addressID,
+            mailingAddress = addressID,
+            billingAddress = addressID,
             emailInvoiceAddress = newUserAccount.emailAddress,
             createdBy = newUserAccount.userID,
             createDate = datetime.utcnow()
@@ -199,20 +170,97 @@ def newLandlordAccount(jsonData):
     # except Exception as e:
     #     return False, e
 
+def createProperty(jsonData):
 
-def newPerson(firstName, lastName, phoneNumber, addressDetails = None, additionalDetails = None, createPerson = None):
-    newPersonsAddress = address(
-        **addressDetails
+    # 1. make property
+
+    requiredAttrs = ['addressDetails',
+                     'firstName', 'lastName', 'phoneNumber', 
+                     'emailAddress', 'passHash',
+                     'companyName', 'companyPhone']
+    for attribute in requiredAttrs:
+        if attribute not in jsonData:
+            print (jsonData)
+            return False, "Failed to create Landlord Account: Missing %s in jsonData"%attribute
+    # try:
+        if 'additionalDetails' in jsonData:
+            additionalDetails = jsonData['additionalDetails']
+        else:
+            additionalDetails = None
+        addressID = createNewAddress(**jsonData['addressDetails'])
+
+        __newUser = newPerson(
+            firstName = jsonData['firstName'], 
+            lastName = jsonData['lastName'], 
+            phoneNumber = jsonData['phoneNumber'], 
+            addressID = addressID,
+            additionalDetails=additionalDetails,
+            createPerson=None
+        )
+        
+        # accountTypeID = accountType.query.filter_by(typeName='landlord').all()
+        newUserAccount = userAccount(
+            userID = __newUser.personID,
+            accountTypeID = 4,#accountTypeID[0].accountTypeID
+            emailAddress = jsonData['emailAddress'],
+            passHash = jsonData['passHash'],
+            createDate = datetime.utcnow()
+        )
+        db.session.add(newUserAccount)
+        db.session.commit()
+
+        newCompany = company(
+            companyID = None,
+            companyName = jsonData['companyName'],
+            phoneNumber = jsonData['companyPhone'],
+            mailingAddress = addressID,
+            billingAddress = addressID,
+            emailInvoiceAddress = newUserAccount.emailAddress,
+            createdBy = newUserAccount.userID,
+            createDate = datetime.utcnow()
+        )
+        db.session.add(newCompany)
+        db.session.commit()
+
+
+        newCompanyRole = companyRole(
+            roleID = None,
+            companyID = newCompany.companyID,
+            userID = newUserAccount.userID,
+            roleTypeID = 5, #roleType.accountTypeID
+            role_begin = datetime.utcnow(),
+            assignedUser = newUserAccount.userID,
+            role_end = None
+        )
+        db.session.add(newCompanyRole)
+        db.session.commit()
+
+        return True, newUserAccount
+
+
+def createNewAddress(houseNumber, streetName, city, state, zipCode, apptNo = None):
+    newAddress = address(
+        houseNumber = houseNumber,
+        streetName = streetName,
+        apptNo = apptNo,
+        city = city, 
+        state = state,
+        zipCode = zipCode
     )
-    db.session.add(newPersonsAddress)
+    db.session.add(newAddress)
     db.session.commit()
+
+    return newAddress.addressID
+
+
+def newPerson(firstName, lastName, phoneNumber, addressID = None, additionalDetails = None, createPerson = None):
     
     newPerson = person(
         personID = None,
         firstName = firstName,
         lastName = lastName,
         phoneNumber = phoneNumber,
-        addressID = newPersonsAddress.addressID,
+        addressID = addressID,
         createdOn = datetime.utcnow()
     )
     db.session.add(newPerson)
@@ -288,55 +336,50 @@ db.init_app(app)
 
 
 
-
-# current_member = UserMaker().MakeUser()
-
-# current_state = LoggedOutState()
-
-# @app.route('/', methods = ['GET'])
-class rentRoll(Resource):
-
+class getAccountType(Resource):
+    
     def get(self):
+        requiredItems = ['sessionID', 'ipAddress']
+        requestData = request.get_json()
+        jsonData = {}
+        for dataItem in requestData:
+            if dataItem in requiredItems:
+                requiredItems.remove(dataItem)
+                jsonData[dataItem] = requestData[dataItem]
 
-        gotUser, userResponse = getUserFromSessionID(request.headers, request.remote_addr)
+        if len(requiredItems) >=1:
+            return {'status': 400, 'message': "Missing necessary information to check sessionID", "missingField(s)": requiredItems}, 400
+        # print ("REQ: ", requestData)
+        # print ('Jsondata: ', jsonData)
+        # print ('Reqdata: ', requiredItems)
         
-        if gotUser:
-            print (userResponse)
-            data = {
-                'name': "Hello",
-                'id': "World"
-            }
-            return (data)
-        else:
-            return userResponse, userResponse["response"]
-    # return render_template('index.html', headerData = current_member.headerContents)
-
-class adminPeople(Resource):
-
-    def get(self):
-        people = []
-        peopleList = person.query.filter_by().all()
-        for listedPerson in peopleList:
-            people.append({
-                'personID':   listedPerson.personID,
-                'firstName':   listedPerson.firstName,
-                'lastName':  listedPerson.lastName,
-                'phoneNumber': listedPerson.phoneNumber
-            })
-        return {"people": people}
-        gotUser, userResponse = getUserFromSessionID(request.headers, request.remote_addr)
+        user = userSession.query.filter_by(sessionID = requestData["sessionID"], IPv4_ipAddress = requestData["ipAddress"]).first()
         
-        if gotUser:
-            print (userResponse)
-            data = {
-                'name': "Hello",
-                'id': "World"
-            }
-            return (data)
-        else:
-            return userResponse, userResponse["response"]
-    # return render_template('index.html', headerData = current_member.headerContents)
+        if user:
+            userAccountType = user.sessionUser.accountAuthority.typeName
+            if userAccountType:
+                return {"userType":userAccountType}
+        
+        return {'userType':''}
 
+class createSessionID(Resource):
+    
+    def post(self):
+        requiredItems = ['username', 'password', 'ipAddress']
+        requestData = request.get_json()
+        accountJsonData = {}
+        for dataItem in requestData:
+            if dataItem in requiredItems:
+                requiredItems.remove(dataItem)
+                if dataItem == 'username':
+                    accountJsonData['emailAddress'] = requestData[dataItem]
+                else:
+                    accountJsonData[dataItem] = requestData[dataItem]
+            
+        if len(requiredItems) >=1:
+            return {'status': 400, 'message': "Missing necessary information to create a new user", "missingField(s)": requiredItems}, 400
+        session = newSession(accountJsonData['emailAddress'], accountJsonData['password'], accountJsonData['ipAddress'])
+        return session, session['status']
 
 class registerNewUser(Resource):
     
@@ -373,14 +416,28 @@ class registerNewUser(Resource):
         else:
             print ( dir(result))
             return {'status': 400, 'message':'Failed to save','error':str(result),'traceback':result.args,'redirectURL':'#'}
-    
 
+class rentRoll(Resource):
+
+    def get(self):
+
+        gotUser, userResponse = getUserFromSessionID(request.headers, request.remote_addr)
+        
+        if gotUser:
+            print (userResponse)
+            data = {
+                'name': "Hello",
+                'id': "World"
+            }
+            return (data)
+        else:
+            return userResponse, userResponse["response"]
 
 class getRentRoll(Resource):
     
     def get(self):
-        if 'userSessionID' in request.headers:
-            isValid, sessionInfo = isSessionValid(request.headers['userSessionID'])
+        if 'userSessionID' in request.cookies:
+            isValid, sessionInfo = isSessionValid(request.cookies['userSessionID'])
             
             if isValid:
                 #Now check if the person is authorized
@@ -398,65 +455,181 @@ class getRentRoll(Resource):
         else:
             return 'Unauthorized: You must be logged in to view this request', 401
 
-class createSessionID(Resource):
-    
+class adminPeople(Resource):
+
+    def get(self):
+        
+        people = []
+        peopleList = person.query.filter_by().all()
+        for listedPerson in peopleList:
+            people.append({
+                'personID':   listedPerson.personID,
+                'firstName':   listedPerson.firstName,
+                'lastName':  listedPerson.lastName,
+                'phoneNumber': listedPerson.phoneNumber
+            })
+        return {"people": people}
+        gotUser, userResponse = getUserFromSessionID(request.headers, request.remote_addr)
+        
+        if gotUser:
+            print (userResponse)
+            data = {
+                'name': "Hello",
+                'id': "World"
+            }
+            return (data)
+        else:
+            return userResponse, userResponse["response"]
+    # return render_template('index.html', headerData = current_member.headerContents)
+
+class adminProperties(Resource):
+
+    def get(self):
+        # 'GET' request comes directly from the webpage on a client's browser.
+        if 'sessionID' in request.cookies:
+            ipAddress = request.remote_addr
+            ipAddress = request.headers['ipAddress']
+            isValid, sessionOrComment = isSessionValid(request.cookies['sessionID'], ipAddress=ipAddress)
+            if isValid:
+                sessn = sessionOrComment
+                accntType = sessn.sessionUser.accountAuthority.typeName
+
+                print(sessn.sessionUser.accountAuthority.typeName)
+                if accntType in ['landlord'] or 'admin' in accntType.lower():
+                    #Now check if the person is authorized
+                    cmpny = sessn.sessionUser.companyRolePerson[0].associatedCompany
+                    print ("company(s): ", cmpny)
+                    
+                    if "propertyID" in request.args:
+                        properties = property.query.filter_by(propertyID = request.args["propertyID"],companyID = cmpny.companyID).all()
+                    else:
+                        properties = property.query.filter_by(companyID = cmpny.companyID).all()
+                    print ('properties: ', properties)
+
+                    # Now build return data
+                    returnData = {'status': 200, 'properties': []}
+                    for prprty in properties:
+                        
+                        data = {
+                            'propertyID':   prprty.propertyID,
+                            'nickname':     prprty.nickname,
+                            'address':      prprty.fullAddress.getHouseNStreet(),
+                            'city':         prprty.fullAddress.city,
+                            'state':        prprty.fullAddress.state,
+                            'bedrms':       prprty.bedroomCount,
+                            'bathrms':      prprty.bathroomCount,
+                            'parkSpaces':   prprty.parkingCount,
+                            'garageSpaces':     prprty.garageCount,
+                            'stories':          prprty.storiesCount,
+                            'homeType':         prprty.homeType,
+                            'yearBuilt':        prprty.yearBuilt,
+                            'purchasePrice':    prprty.purchasePrice,
+                            'purchaseDate':     prprty.purchaseDate,
+                            'schoolDistrict':   prprty.schoolDistrict,
+                        }
+                        returnData['properties'].append(data)
+
+                    return returnData, returnData['status']
+                    reqJsonData = {}
+                    requiredItems = ['sessionID', 'address','firstName', 'lastName', 'phoneNumber', 'emailAddress', 'password','companyName', 'companyPhone']
+                    addressRequirements = ['houseNumber', 'streetName','city','state','zipCode']
+                    requestData = request.get_json()
+                    for dataItem in requestData:
+                        if dataItem in requiredItems:
+                            requiredItems.remove(dataItem)
+                            if dataItem == 'address':
+                                for addressComp in requestData[dataItem]:
+                                    if addressComp in addressRequirements:
+                                        addressRequirements.remove(addressComp)
+                                if len(addressRequirements)>=1:
+                                    return {'status': 400, 'message': "Missing component(s) in the address", "missingField(s)": addressRequirements}, 400
+                else:
+                    sessionOrComment = "Insufficient Authority to view this data"
+            return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
+        else:
+            return {'status': 401, 'message': 'Unauthorized: You must be logged in to view this request'}, 401
+
     def post(self):
-        requiredItems = ['username', 'password', 'ipAddress']
+        # 'POST' request comes from the HomeEasy webserver (form post gets processed and requests to be saved here).
+        if request.remote_addr != '10.1.1.4' and request.remote_addr != '127.0.0.1' and request.remote_addr != '24.101.69.174':
+            return {'status': 403, 'message': 'Forbidden: You cannot view this request'}, 403
+
+        propertyJsonData = {}
+        requiredItems = ['sessionID', 'ipAddress', 'address','bedroomCount','bathroomCount',
+                         'parkingCount', 'garageCount', 'storiesCount', 'homeType', 'yearBuilt',
+                         'purchasePrice', 'purchaseDate', 'schoolDistrict', 'nickname']
+        # FUTURE: Add ownerID as required item and make the user select the owner from the list
+        addressRequirements = ['houseNumber', 'streetName','city','state','zipCode']
         requestData = request.get_json()
-        accountJsonData = {}
         for dataItem in requestData:
             if dataItem in requiredItems:
                 requiredItems.remove(dataItem)
-                if dataItem == 'username':
-                    accountJsonData['emailAddress'] = requestData[dataItem]
+                if dataItem == 'address':
+                    if 'addressID' not in requestData['address']:
+                        for addressComp in requestData[dataItem]:
+                            if addressComp in addressRequirements:
+                                addressRequirements.remove(addressComp)
+                        if len(addressRequirements)>=1:
+                            return {'status': 400, 'message': "Missing component(s) in the address", "missingField(s)": addressRequirements}, 400
+                        else:
+                            propertyJsonData['addressID'] = createNewAddress(**requestData['address'])
+                    else:
+                        propertyJsonData['addressID'] = requestData[dataItem]['addressID']
+                    if not(propertyJsonData['addressID']):
+                        return {'status': 400, 'message': "Failed to get the addressID"}, 400
+                elif dataItem in ['sessionID', 'ipAddress']:
+                    pass
                 else:
-                    accountJsonData[dataItem] = requestData[dataItem]
+                    propertyJsonData[dataItem] = requestData[dataItem]
             
         if len(requiredItems) >=1:
             return {'status': 400, 'message': "Missing necessary information to create a new user", "missingField(s)": requiredItems}, 400
-        session = newSession(accountJsonData['emailAddress'], accountJsonData['password'], accountJsonData['ipAddress'])
-        return session, session['status']
-    
-class getAccountType(Resource):
-    
-    def get(self):
-        requiredItems = ['sessionID', 'ipAddress']
-        requestData = request.get_json()
-        jsonData = {}
-        for dataItem in requestData:
-            if dataItem in requiredItems:
-                requiredItems.remove(dataItem)
-                jsonData[dataItem] = requestData[dataItem]
+        
+        # All the data pieces needed is verified to be here. now verify authority
+        sessionID = propertyJsonData['sessionID']
+        ipAddress = propertyJsonData['ipAddress']
+        isValid, sessionOrComment = isSessionValid(sessionID=sessionID, ipAddress=ipAddress)
+        if isValid:
+            sessn = sessionOrComment
+            accntType = sessn.sessionUser.accountAuthority.typeName
+            companyAuthority = sessn.sessionUser.companyRolePerson[0].associatedAccountType.typeName
 
-        if len(requiredItems) >=1:
-            return {'status': 400, 'message': "Missing necessary information to check sessionID", "missingField(s)": requiredItems}, 400
-        print ("REQ: ", requestData)
-        print ('Jsondata: ', jsonData)
-        print ('Reqdata: ', requiredItems)
-        
-        user = userSession.query.filter_by(sessionID = requestData["sessionID"], IPv4_ipAddress = requestData["ipAddress"]).first()
-        
-        if user:
-            userAccountType = user.sessionUser.accountAuthority.typeName
-            if userAccountType:
-                return {"userType":userAccountType}
-        
-        return {'userType':''}
+            if (accntType in ['landlord'] and companyAuthority!= 'companyRead') or 'admin' in accntType.lower():
+                #Now the person is authorized to do this
+                propertyJsonData['companyID'] = sessn.sessionUser.companyRolePerson[0].associatedCompany
+                propertyJsonData['createUser'] = sessn.sessionUser.userID
+                
+                newPropertyID = createProperty(propertyJsonData)
+                    
+                if newPropertyID:
+                    return {'status': 201, 'message': 'Success: Property created', 'propertyID': newPropertyID}, 201
+                else:
+                    return {'status': 500, 'message': 'issue creating property'}, 500
+            else:
+                return {'status': 403, 'message': 'Forbidden: Insufficient authority to add a property'}, 403
+        return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
 
-api.add_resource(rentRoll, '/rent')
-api.add_resource(getRentRoll, '/admin/rent/roll')
-api.add_resource(adminPeople, '/admin/people')
+    
+
+
+api.add_resource(getAccountType, '/getAuthority')
 api.add_resource(registerNewUser, '/newLandlord')
 api.add_resource(createSessionID, '/createSessionID')
-api.add_resource(getAccountType, '/getAuthority')
 
-def get_conn():
-    # credential = identity.DefaultAzureCredential(exclude_interactive_browser_credential=True)
-    # token_bytes = credential.get_token("https://database.windows.net/.default").token.encode("UTF-16-LE")
-    # token_struct = struct.pack(f'<I{len(token_bytes)}s', len(token_bytes), token_bytes)
-    # SQL_COPT_SS_ACCESS_TOKEN = 1256  # This connection option is defined by microsoft in msodbcsql.h
-    conn = pyodbc.connect(connection_string)#, attrs_before={SQL_COPT_SS_ACCESS_TOKEN: token_struct})
-    return conn
+# Rent Page
+api.add_resource(rentRoll, '/rent')
+api.add_resource(getRentRoll, '/admin/rent/roll')
+
+# Leases Page
+
+
+# Properties Page
+
+
+# People
+api.add_resource(adminPeople, '/admin/people')
+api.add_resource(adminProperties, '/admin/properties')
+
 
 if __name__ == "__main__":
     app.run(debug=True)

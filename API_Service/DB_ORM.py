@@ -124,9 +124,9 @@ class userAccount(db.Model):
     authoredLease =         db.relationship('lease', back_populates='leaseAuthor')                  #done
     authoredPaymentItems =  db.relationship('paymentItem', back_populates='paymentItemCreator')     #done
     authoredLeaseFees =     db.relationship('leaseFee', back_populates='leaseFeeAuthor')            #done
-    # companyRolePerson =     db.relationship('companyRole', back_populates='companyRoleUserAccount') #done
-    # createdCompanyRoles =   db.relationship('companyRole', back_populates='companyRoleCreator')     #done
-    # removedCompanyRoles =   db.relationship('companyRole', back_populates='companyRoleRemover')     #done
+    companyRolePerson =     db.relationship('companyRole', foreign_keys = 'companyRole.userID', back_populates='companyRoleUserAccount') #done
+    createdCompanyRoles =   db.relationship('companyRole', foreign_keys = 'companyRole.assignedUser', back_populates='companyRoleCreator')     #done
+    removedCompanyRoles =   db.relationship('companyRole', foreign_keys = 'companyRole.endedUser', back_populates='companyRoleRemover')     #done
     authoredCompanies =     db.relationship('company', back_populates='companyCreator')             #done
 
     def __repr__(self) -> str:
@@ -151,8 +151,11 @@ class address(db.Model):
     # currentApplicantAddress = db.relationship('application', back_populates='currentApplicantDetailedAddress')  #missing - STRETCH
     # previousApplicantAddress = db.relationship('application', back_populates='previousApplicantDetailedAddress')  #missing - STRETCH
 
+    def getHouseNStreet(self) -> str:
+        return '%s %s %s'%(self.houseNumber, self.streetName, self.apptNo)
+    
     def __repr__(self) -> str:
-        return "<address(addressID = '%r', address = '%s %s %s %s, %s, %s %s')>" %(self.addressID, self.houseNumber, self.streetName, self.apptNo, self.city, self.state, self.zipCode)
+        return "<address(addressID = '%r', address = '%s %s %s, %s, %s %s')>" %(self.addressID, self.houseNumber, self.streetName, self.apptNo, self.city, self.state, self.zipCode)
 
 class company(db.Model):
     # This is the database relationship object for records in the userCompanies table
@@ -291,10 +294,10 @@ class companyRole(db.Model):
     
 
     associatedCompany = db.relationship('company', back_populates='relatedPersonRole')          #done
-    companyRoleUserAccount = db.relationship('userAccount', foreign_keys=[userID])#back_populates='companyRolePerson') #done
+    companyRoleUserAccount = db.relationship('userAccount', foreign_keys=[userID], back_populates='companyRolePerson') #done
     associatedAccountType = db.relationship('accountType', back_populates='companyRoleType')    #done
-    companyRoleCreator = db.relationship('userAccount', foreign_keys=[assignedUser])#back_populates='createdCompanyRoles')   #done
-    companyRoleRemover = db.relationship('userAccount', foreign_keys=[endedUser])#back_populates='removedCompanyRoles')   #done
+    companyRoleCreator = db.relationship('userAccount', foreign_keys=[assignedUser], back_populates='createdCompanyRoles')   #done
+    companyRoleRemover = db.relationship('userAccount', foreign_keys=[endedUser], back_populates='removedCompanyRoles')   #done
 
     def __repr__(self) -> str:
         return "<companyRole(roleID = '%i', companyID = '%i', roleTypeID = '%i')>" %(self.roleID, self.userID, self.roleTypeID)
