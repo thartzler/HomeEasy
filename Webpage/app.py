@@ -12,18 +12,18 @@ from DB_Object_Creator import db, Department, webSession, property
 
 # from DB_Object_Creator import 
 class newUserForm(Form):
-    firstName= StringField('First Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+')])
-    lastName= StringField('Last Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+')])
-    companyName= StringField('Company Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+')])
-    emailAddress= StringField('Email Address*', [validators.DataRequired()])
+    firstName= StringField('First Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
+    lastName= StringField('Last Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
+    companyName= StringField('Company Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
+    emailAddress= StringField('Email Address*', [validators.DataRequired(),validators.Length(max=50)])
     houseNumber= StringField('House No.*', [validators.DataRequired()])
-    streetName= StringField('Street*', [validators.DataRequired()])
-    apptNo= StringField('Appt No.')
-    city= StringField('City*', [validators.DataRequired()])
-    state= StringField('State*', [validators.DataRequired(), validators.Regexp('[A-Z]{2}')])
-    zipCode= StringField('Zip Code*', [validators.DataRequired(), validators.Regexp('[0-9]+')])
-    companyPhone= StringField('Company Phone*', [validators.DataRequired()])
-    phoneNumber= StringField('Personal Phone Number*', [validators.DataRequired()])
+    streetName= StringField('Street*', [validators.DataRequired(),validators.Length(max=30)])
+    apptNo= StringField('Appt No.',[validators.Length(max=6)])
+    city= StringField('City*', [validators.DataRequired(),validators.Length(max=30)])
+    state= StringField('State*', [validators.DataRequired(), validators.Regexp('[A-Z]{2}'), validators.Length(min=2, max=2)])
+    zipCode= StringField('Zip Code*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(min=5, max=5)])
+    companyPhone= StringField('Company Phone*', [validators.DataRequired(), validators.Regexp('[0-9]{3}-[0-9]{3}-[0-9]{4}'), validators.Length(min=10, max=12)])
+    phoneNumber= StringField('Personal Phone Number*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(min=10, max=10)])
     password= PasswordField('Password*', [
             validators.DataRequired(),\
             validators.EqualTo('password_confirm', message='Passwords must already match!')\
@@ -58,31 +58,6 @@ def index():
     current_member = getCurrentUser(request)
     return render_template('index.html', headerData = current_member.headerContents)
 
-@app.route('/solutions')
-def solutions():
-    current_member = getCurrentUser(request)
-    dbSolutions = Department.query.filter_by(IsSolution = 1).all()
-    return render_template('solutions/index.html', headerData = current_member.headerContents, solutions = dbSolutions)
-
-@app.route('/rent')
-def rent_roll():
-    current_member = getCurrentUser(request)
-    print ('currentMember: ', current_member)
-    userType = type(current_member)
-    print ("userType: ", userType)
-    if userType == TenantUser:
-        return render_template('unauthorized.html', headerData = current_member.headerContents, loggedIn = True)
-    elif userType in [Property_Manager_User, AdminUser]:
-        rentRollList = property.query.all()
-        monthlist = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        rentRollList = []
-        return render_template('admin/rent/rent_roll.html', headerData = current_member.headerContents, rentRollList = rentRollList, monthlist=monthlist)
-    else:
-        
-        return render_template('unauthorized.html', headerData = current_member.headerContents, loggedIn = True)
-    
-
-
 @app.route('/login', methods = ['GET', 'POST'])
 def loginPage():
     current_member = getCurrentUser(request)
@@ -108,6 +83,12 @@ def loginPage():
         else:
             return render_template('login.html', headerData = current_member.headerContents)
 
+@app.route('/newUser',  methods = ['GET'])
+def newUserPage():
+    form = newUserForm(request.form)
+    current_member = getCurrentUser(request)
+    return render_template('newUser.html', headerData = current_member.headerContents, form=form)
+
 @app.route('/logout')
 def logoutPage():
     
@@ -117,17 +98,37 @@ def logoutPage():
     resp.set_cookie('sessionID','', expires = 0)
     return resp
 
-@app.route('/newUser',  methods = ['GET'])
-def newUserPage():
-    form = newUserForm(request.form)
+@app.route('/rent')
+def rent_roll():
     current_member = getCurrentUser(request)
-    return render_template('newUser.html', headerData = current_member.headerContents, form=form)
+    print ('currentMember: ', current_member)
+    userType = type(current_member)
+    print ("userType: ", userType)
+    if userType == TenantUser:
+        return render_template('unauthorized.html', headerData = current_member.headerContents, loggedOut = True)
+    elif userType in [Property_Manager_User, AdminUser]:
+        rentRollList = property.query.all()
+        monthlist = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        rentRollList = []
+        return render_template('admin/rent_roll.html', headerData = current_member.headerContents, rentRollList = rentRollList, monthlist=monthlist)
+    else:
+        
+        return render_template('unauthorized.html', headerData = current_member.headerContents, loggedOut = True)
+    
+@app.route('/people')
+def people():
+    current_member = getCurrentUser(request)
+    return current_member.getPeoplePage(request)
 
-# @app.route('/')
-# def index():
-#     content = [{'name': "Home", 'link': "/", 'pageID': "index"},{'name': "Solutions",'link': "../solutions/index.html", 'pageID': "solutions"},
-#             {'name': "Product Reviews", 'link': "../product_reviews/index.html", 'pageID': "reviews"}, {'name': "About Us", 'link': "../about_us/index.html", 'pageID': "about"}]
-#     return render_template('index.html', headerData = current_member.headerContents)
+@app.route('/properties', methods = ['GET', 'POST'])
+def properties():
+    current_member = getCurrentUser(request)
+    if request.method == 'GET':
+        return current_member.getPropertiesPage(request)#render_template('admin/properties.html', headerData = current_member.headerContents)
+    else:
+        resp = current_member.saveProperty(request)
+        print (resp)
+        return resp, resp['status']
 
 
 if __name__ == "__main__":

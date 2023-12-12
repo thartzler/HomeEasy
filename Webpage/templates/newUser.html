@@ -272,81 +272,81 @@
                             
                         </div>
                     </form>
-                    <script type="text/javascript">
-                        
-                        function buildJsonData(form) {
-                            const jsonData = { 'additionalDetails':{ } , 'address': { } };
-                            const addressInfo = ['houseNumber', 'streetName','city','state','zipCode','apptNo']
-                            const details = ['address','firstName', 'lastName', 'phoneNumber', 'emailAddress', 'password','companyName', 'companyPhone']
-                            const junk = ['password_confirm']
-                            
-                            for (const pair of new FormData(form)) {
-                                if (addressInfo.includes(pair[0])) {
-                                    jsonData['address'][pair[0]] = pair[1];
-                                }else if (details.includes(pair[0])) {
-                                    jsonData[pair[0]] = pair[1];
-                                }else if (!junk.includes(pair[0])){
-                                    jsonData['additionalDetails'][pair[0]] = pair[1];
-                                }
-                            };
-                            return jsonData
-                        }
-                        
-                        function buildHeaders() {
-                            const headers = {
-                                "Content-Type": "application/json",
-                                // "Access-Control-Allow-Origin": '*'
-                            };
-                            return headers;
-                        }
-                        
-                        async function submitForm(e, form) {
-                            // 1. Prevent reloading the page
-                            e.preventDefault();
-                            // 2. Submit the form
-                            // 2.1 User Interaction
-                            const submitBtn = document.getElementById('submitButton');
-                            const spinner = document.getElementById('loadingSpinner');
-                            const messageBox = document.getElementById('userMessage');
-                            submitBtn.disabled = true;
-                            spinner.classList.remove('hide');
-                            messageBox.setAttribute("class","")
-                            messageBox.innerText = ""
-                            
-                            setTimeout(() => submitBtn.disabled = false, 2400);
-                            setTimeout(() => spinner.classList.add('hide'), 2400);
-                            // 2.2 Build JSON data
-                            const jsonData = buildJsonData(form);
-                            
-                            const headers = buildHeaders();
-                            
-                            const response = await submitPostHttpRequest(`http://api.hartzlerhome.solutions/newLandlord`, headers, jsonData);
-                            if (response) {
-                                const status = response.status
-                                const jsonResponse = response.message
-                                spinner.classList.add('hide')
-                                console.log(jsonResponse)
-                                messageBox.innerText = jsonResponse
-                                
-                                if (status <300) {
-                                    messageBox.setAttribute("class","success")
-                                    setTimeout(() => document.location.href = '/login', 2500);
-                                } else {
-                                    messageBox.setAttribute("class","danger")
-
-                                    // submitBtn.disabled = false
-                                }
-                            }
-                        }
-                        
-                        const newUserForm = document.querySelector("#newUserSignup");
-                        if (newUserForm) {
-                            newUserForm.addEventListener("submit", function(e) {
-                                submitForm(e, this);
-                            });
-                        }
-                    </script>
                 </div>
+                <script type="text/javascript">
+                
+                function buildJsonData(form) {
+                    const jsonData = { 'additionalDetails':{ } , 'address': { } };
+                    const addressInfo = ['houseNumber', 'streetName','city','state','zipCode','apptNo']
+                    const details = ['address','firstName', 'lastName', 'phoneNumber', 'emailAddress', 'password','companyName', 'companyPhone']
+                    const junk = ['password_confirm']
+                    
+                    for (const pair of new FormData(form)) {
+                        if (addressInfo.includes(pair[0])) {
+                            jsonData['address'][pair[0]] = pair[1];
+                        }else if (details.includes(pair[0])) {
+                            jsonData[pair[0]] = pair[1];
+                        }else if (!junk.includes(pair[0])){
+                            jsonData['additionalDetails'][pair[0]] = pair[1];
+                        }
+                    };
+                    return jsonData
+                }
+                
+                function buildHeaders() {
+                    const headers = {
+                        "Content-Type": "application/json",
+                        // "Access-Control-Allow-Origin": '*'
+                    };
+                    return headers;
+                }
+                
+                async function submitForm(e, form) {
+                    // 1. Prevent reloading the page
+                    e.preventDefault();
+                    // 2. Submit the form
+                    // 2.1 User Interaction
+                    const submitBtn = document.getElementById('submitButton');
+                    const spinner = document.getElementById('loadingSpinner');
+                    const messageBox = document.getElementById('userMessage');
+                    submitBtn.disabled = true;
+                    spinner.classList.remove('hide');
+                    messageBox.setAttribute("class","")
+                    messageBox.innerText = ""
+                    
+                    setTimeout(() => submitBtn.disabled = false, 2400);
+                    setTimeout(() => spinner.classList.add('hide'), 2400);
+                    // 2.2 Build JSON data
+                    const jsonData = buildJsonData(form);
+                    
+                    const headers = buildHeaders();
+                    
+                    const response = await submitPostHttpRequest(`http://api.hartzlerhome.solutions/newLandlord`, headers, jsonData);
+                    if (response) {
+                        const status = response.status
+                        const jsonResponse = response.message
+                        spinner.classList.add('hide')
+                        console.log(jsonResponse)
+                        messageBox.innerText = jsonResponse
+                        
+                        if (status <300) {
+                            messageBox.setAttribute("class","success")
+                            setTimeout(() => document.location.href = '/login', 2500);
+                        } else {
+                            messageBox.setAttribute("class","danger")
+                            
+                            // submitBtn.disabled = false
+                        }
+                    }
+                }
+                
+                const newUserForm = document.querySelector("#newUserSignup");
+                if (newUserForm) {
+                    newUserForm.addEventListener("submit", function(e) {
+                        submitForm(e, this);
+                    });
+                }
+            </script>
             </div>
         </div>
     </div>

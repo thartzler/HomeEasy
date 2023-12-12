@@ -208,12 +208,30 @@ h5.ReviewTitle{
 }
 
 button {
+    margin: 10px auto;
     background-color: @button-color;
     .border-radius();
     border: (@line-width - 2px) solid @tertiary-color;
     padding: 8px;
     color: @background-color;
     font-weight: bold;
+    &:hover {
+        background-color: @tertiary-color;
+        border: (@line-width - 2px) solid @tertiary-color;
+        color: @background-color;
+    }
+    &:active {
+        background-color: @tertiary-color;
+        color: @background-color;
+        border: (@line-width - 2px) solid @background-color;
+    }
+    &:disabled {
+        background-color: @background-color;
+        color: @tertiary-color;
+        border: (@line-width - 2px) solid @tertiary-color;
+        
+    }
+
 }
 .nav-button{
     margin: 10px auto;

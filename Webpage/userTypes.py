@@ -1,8 +1,38 @@
 # from app import Users, BlogPost, Session
 from DB_Object_Creator import db, userAccount, userSession, webSession, person
 from datetime import date, datetime
-from flask import request
+from flask import request, make_response, render_template
 import requests, json
+
+
+from wtforms import Form, BooleanField, StringField, validators, DateField, IntegerField, DecimalField
+
+def roundToHalf(value):
+    value = value-0.5
+    value = value.round(0)
+    return value +0.5
+# from DB_Object_Creator import 
+class newPropertyForm(Form):
+    nickname= StringField('Nickname*', [validators.DataRequired(), validators.Length(max=50)])
+    houseNumber= IntegerField('House No.*', [validators.DataRequired()])
+    streetName= StringField('Street*', [validators.DataRequired(),validators.Length(max=30)])
+    apptNo= StringField('Appt No.', [validators.Length(max=6)])
+    city= StringField('City*', [validators.DataRequired(),validators.Length(max=30)])
+    state= StringField('State*', [validators.DataRequired(), validators.Regexp('[A-Z]{2}'), validators.Length(min=2, max=2)])
+    zipCode= IntegerField('Zip Code*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(min=5, max=5)])
+    
+    bedroomCount= IntegerField('Bedrooms*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
+    bathroomCount= DecimalField('Bathrooms*', [validators.DataRequired(), validators.Regexp('[0-9.]+'), validators.NumberRange(min=0)], places=1, rounding=roundToHalf)
+    parkingCount= IntegerField('Parking Spots*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
+    garageCount= IntegerField('Garage Spaces*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
+    homeType = StringField('Home Type*', [validators.DataRequired(), validators.Length(max=50)])
+    storiesCount= StringField('Stories*', [validators.DataRequired(), validators.Regexp('[0-9.]+')])
+    yearBuilt = IntegerField('Year Built*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(max=4)])
+    purchaseDate = DateField('Purchase Date*', [validators.DataRequired()])
+    purchasePrice = IntegerField('Purchase Price*', [validators.DataRequired(), validators.Regexp('[0-9]+')])
+    schoolDistrict = StringField('School District*', [validators.DataRequired(), validators.Length(max=50)])
+    
+
 
 
 def getUser(sessionID: str = None, ipAddress: str = None):
@@ -81,7 +111,17 @@ class User:
         self = UserMaker().MakeUser()
         return self
 
+    def getPeoplePage(self, sessionInfo):
+        resp = make_response(render_template('unauthorized.html', headerData = self.headerContents, loggedOut = self.userSession==None))
+        return resp
     
+    def getPropertiesPage(self, sessionInfo):
+        resp = make_response(render_template('unauthorized.html', headerData = self.headerContents, loggedOut = self.userSession==None))
+        return resp
+    
+    def saveProperty(self, requestInfo):
+        
+        return {'status': 401, 'message': 'You must be logged in', 'redirect': '/login'}, 401
 
 
 class LoggedOutUser(User):
@@ -92,23 +132,8 @@ class LoggedOutUser(User):
         self.userAccount = None
         self.headerContents = [{'name': "Home", 'link': "/", 'pageID': "index"}, {'name': "Login", 'link': "/login", 'pageID': "login"}]
     
-    # def viewBlogPost, viewcomments,
-
-    # def writeComment(self, postID, replyToCommentID):
-    #     #This is not feasible. Must be logged in
-    #     return False, "Please Login first"
-
-    # def deleteComment(self, commentID):
-    #     #This is not feasible. Must be logged in
-    #     return False,  "Please Login first"
-
-    # def likeComment(self, commentID):
-    #     #This isn't feasible unless logged in
-    #     return False, "Please Login first"
-
-    # def likePost(self, postID):
-    #     #This isn't feasible unless logged in
-    #     return False, "Please Login first"
+    # getPeoplePage() -> parent definition
+    # saveProperty() -> parent definition
 
     def createAnAccount(self, username, passHash, firstName, lastName, address, emailAddress, phoneNumber):
         pass
@@ -134,6 +159,42 @@ class TenantUser(User):
                                 {'name': "Documents",       'link': "/solutions",                      'pageID': "solutions"}, \
                                 # {'name': "Maintenance",     'link': "../product_reviews/index.html",    'pageID': "reviews"}, \
                                 {'name': "Logout",          'link': "/logout",                     'pageID': "logout"}]
+
+    # getPeoplePage() -> parent definition
+
+    def saveProperty(self, requestInfo):
+        requestData = requestInfo.json()
+        
+        url = 'http://api.hartzlerhome.solutions/admin/properties'
+        payload = json.dumps({
+            "address": {
+                "houseNumber": int(requestData['houseNumber']),
+                "streetName": requestData['streetName'],
+                "city": requestData['city'],
+                "state": requestData['state'],
+                "zipCode": int(requestData['zipCode'])
+            },
+            "bedroomCount": int(requestData['bedroomCount']),
+            "bathroomCount": round(float(requestData['bathroomCount'],0)*2)/2,
+            "parkingCount": int(requestData['parkingCount']),
+            "garageCount": int(requestData['garageCount']),
+            "storiesCount": float(requestData['storiesCount']),
+            "homeType": requestData['homeType'],
+            "purchasePrice": int(requestData['purchasePrice']),
+            "purchaseDate": datetime.strptime(requestData['purchaseDate'],'%m/%d/%Y'),
+            "schoolDistrict": requestData['schoolDistrict'],
+            "nickname": requestData['nickname'],
+            "sessionID": requestInfo.cookies['sessionID'],
+            "ipAddress": requestInfo.remote_addr
+        })
+        
+        headers = {'Content-Type': 'application/json'}
+        responseData = requests.request("POST", url, headers=headers, data=payload).json()
+        # {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
+        if responseData:
+            return responseData
+        else:
+            return {'status': 500, 'message': 'Issue saving the property'}, 500
 
     # viewBlogPost() -> parent definition
     # viewComments() -> Parent definition
@@ -161,11 +222,56 @@ class Property_Manager_User(User):
         super().__init__(*args, **kwargs)
         self.headerContents = [ {'name': "Rent Roll",       'link': "/rent",            'pageID': "rent"}, \
                                 {'name': "Leases",          'link': "/leases",          'pageID': "leases"}, \
-                                {'name': "Properties",      'link': "/solutions",       'pageID': "solutions"}, \
                                 {'name': "People",          'link': "/people",          'pageID': "people"}, \
+                                {'name': "Properties",      'link': "/properties",      'pageID': "properties"}, \
                                 # {'name': "Maintenance",     'link': "/maintenance",     'pageID': "maintenance"}, \
                                 {'name': "Logout",          'link': "/logout",          'pageID': "logout"}]
         
+    def getPeoplePage(self, sessionInfo):
+        form = newPropertyForm(request.form)
+        resp = make_response(render_template('admin/people.html', headerData = self.headerContents, form=form))
+        return resp
+    
+    def getPropertiesPage(self, sessionInfo):
+        form = newPropertyForm(request.form)
+        resp = make_response(render_template('admin/properties.html', headerData = self.headerContents, form=form))
+        return resp
+
+    def saveProperty(self, requestInfo):
+        requestData = requestInfo.get_json()
+        
+        url = 'http://api.hartzlerhome.solutions/admin/properties'
+        payload = json.dumps({
+            "address": {
+                "houseNumber": int(requestData['houseNumber']),
+                "streetName": requestData['streetName'],
+                "city": requestData['city'],
+                "state": requestData['state'],
+                "zipCode": int(requestData['zipCode'])
+            },
+            "bedroomCount": int(requestData['bedroomCount']),
+            "bathroomCount": round(float(requestData['bathroomCount'])*2,0)/2,
+            "parkingCount": int(requestData['parkingCount']),
+            "garageCount": int(requestData['garageCount']),
+            "homeType": requestData['homeType'],
+            "storiesCount": float(requestData['storiesCount']),
+            "yearBuilt": int(requestData['yearBuilt']),
+            "purchasePrice": int(requestData['purchasePrice']),
+            "purchaseDate": requestData['purchaseDate'],
+            "schoolDistrict": requestData['schoolDistrict'],
+            "nickname": requestData['nickname'],
+            "sessionID": requestInfo.cookies['sessionID'],
+            "ipAddress": requestInfo.remote_addr
+        })
+        
+        headers = {'Content-Type': 'application/json'}
+        responseData = requests.request("POST", url, headers=headers, data=payload).json()
+        # {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
+        if responseData:
+            return responseData
+        else:
+            return {'status': 500, 'message': 'Issue saving the property'}, 500
+
     # def viewBlogPost(self, id):
     #     return BlogPost.query.filter_by(ReviewID = id).first_or_404()
 
@@ -183,11 +289,53 @@ class AdminUser(User):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         # self.userAccount = userAccount.query.filter_by(Username = self.User.Username).first_or_404()
-        self.headerContents = [ {'name': "Rent Roll",       'link': "/rent",                            'pageID': "rent"}, \
-                                {'name': "Properties",      'link': "/solutions",                       'pageID': "solutions"}, \
-                                {'name': "People",          'link': "../product_reviews/index.html",    'pageID': "people"}, \
-                                # {'name': "Maintenance",     'link': "../product_reviews/index.html",    'pageID': "maintenance"}, \
-                                {'name': "Logout",          'link': "/logout.html",                     'pageID': "logout"}]
+        self.headerContents = [ {'name': "Rent Roll",       'link': "/rent",            'pageID': "rent"}, \
+                                {'name': "Leases",          'link': "/leases",          'pageID': "leases"}, \
+                                {'name': "People",          'link': "/people",          'pageID': "people"}, \
+                                {'name': "Properties",      'link': "/properties",      'pageID': "properties"}, \
+                                # {'name': "Maintenance",     'link': "/maintenance",     'pageID': "maintenance"}, \
+                                {'name': "Logout",          'link': "/logout",          'pageID': "logout"}]
+        
+
+    def getPeoplePage(self, sessionInfo):
+
+        resp = make_response(render_template('admin/people.html', headerData = self.headerContents, loggedOut = self.userSession==None))
+        return resp
+
+    def saveProperty(self, requestInfo):
+        requestData = requestInfo.json()
+        
+        url = 'http://api.hartzlerhome.solutions/admin/properties'
+        payload = json.dumps({
+            "address": {
+                "houseNumber": int(requestData['houseNumber']),
+                "streetName": requestData['streetName'],
+                "city": requestData['city'],
+                "state": requestData['state'],
+                "zipCode": int(requestData['zipCode'])
+            },
+            "bedroomCount": int(requestData['bedroomCount']),
+            "bathroomCount": round(float(requestData['bathroomCount'],0)*2)/2,
+            "parkingCount": int(requestData['parkingCount']),
+            "garageCount": int(requestData['garageCount']),
+            "storiesCount": float(requestData['storiesCount']),
+            "homeType": requestData['homeType'],
+            "purchasePrice": int(requestData['purchasePrice']),
+            "purchaseDate": datetime.strptime(requestData['purchaseDate'],'%m/%d/%Y'),
+            "schoolDistrict": requestData['schoolDistrict'],
+            "nickname": requestData['nickname'],
+            "sessionID": requestInfo.cookies['sessionID'],
+            "ipAddress": requestInfo.remote_addr
+        })
+        
+        headers = {'Content-Type': 'application/json'}
+        responseData = requests.request("POST", url, headers=headers, data=payload).json()
+        # {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
+        if responseData:
+            return responseData
+        else:
+            return {'status': 500, 'message': 'Issue saving the property'}, 500
+        
         
     # def viewBlogPost(self, id):
     #     return BlogPost.query.filter_by(ReviewID = id).first_or_404()

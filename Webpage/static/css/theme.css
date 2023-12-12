@@ -184,6 +184,7 @@ h5.ReviewTitle {
   padding-top: 20px;
 }
 button {
+  margin: 10px auto;
   background-color: #5dade2;
   -webkit-border-radius: 7px;
   -moz-border-radius: 7px;
@@ -192,6 +193,21 @@ button {
   padding: 8px;
   color: whitesmoke;
   font-weight: bold;
+}
+button:hover {
+  background-color: #212F3C;
+  border: 1px solid #212F3C;
+  color: whitesmoke;
+}
+button:active {
+  background-color: #212F3C;
+  color: whitesmoke;
+  border: 1px solid whitesmoke;
+}
+button:disabled {
+  background-color: whitesmoke;
+  color: #212F3C;
+  border: 1px solid #212F3C;
 }
 .nav-button {
   margin: 10px auto;

@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+
+{% block pageInfo %}
+
+    <style type="text/css" rel="stylesheet/css">
+        
+        main {
+            margin-top: calc(max(5vh, 50px));
+            padding-top: 30px;
+        }
+        main h1{
+            text-align: center;
+            margin:15px 0px;
+        }
+        .ourSolutions{
+            max-width: 80%;
+        }
+        .solution {
+            margin: 10px 0;
+        }
+        
+    </style>
+    
+    <style type="text/css" rel="stylesheet/css">
+        /* .navbar-dark{
+            
+        } */
+        .secondary-nav-item {
+            color:#212529; /* @tertiaryColor */
+        }
+        .secondNavbar {
+            
+            box-shadow: 0px 5px 8px grey;
+        }
+        main {
+            margin-top: calc(max(5vh, 50px) + 83px);
+            padding-top: 30px;
+        }
+        main h1{
+            text-align: center;
+            margin:15px 0px;
+        }
+        #loadingSpinner {
+            top: 0;
+            left: 0;
+            max-width: 100%;
+            max-height:100%;
+        }
+        .hide {
+            display: none;
+        }
+
+        
+    </style>
+    <script type="text/javascript">
+        function validate(input) {
+            // var mailformat = /^w+([.-]?w+)*@w+([.-]?w+)*(.w{2,3})+$/;
+            
+            if (/^[a-zA-Z0-9&+?_`~-]/.test(input.value)) {
+                input.setAttribute("class","satisfiedInputField");    //The pop up alert for a valid email address
+                // document.inquiryForm.getElementById("emailAddress").focus();
+                readyToSubmit()
+                return true;
+            }
+            else if (input.value!="" || (input.value=="" && input.hasAttribute("required"))) {
+                // alert("You have entered an invalid email address!");    //The pop up alert for an invalid email address
+                input.setAttribute("class","emptyInputField");
+                
+                // document.getElementById("emailAddress").focus();
+                return false;
+            }
+            else {
+                input.setAttribute("class","inputField")
+                readyToSubmit()
+                return true;
+            }
+        }
+        function readyToSubmit() {
+            for (const ele of document.getElementById("newPropertyForm").querySelectorAll("[required]")) {
+                if (!ele.reportValidity()) {
+                    return;
+                }
+            }
+            document.getElementById("submitButton").disabled=false
+        }
+    </script>
+
+{% endblock %}
+
+
+{% block mainContent %}
+    <main>
+        <a name="properties"></a>
+        <div class="container properties">
+            <div class="container">
+                <button type="button" data-bs-toggle="modal" data-bs-target="#propertyEditModal" id="newPropertyButton">Add New Property</button>
+            </div>
+            <div class="container" id="render_propertiesTable">
+                <table class="propertiesTable">
+                    <thead>
+                        <tr class="TitleRow">
+
+                        </tr>
+                    </thead>
+                </table>{% for solution in solutions %}
+                <div class="row employee">
+                    <div class="col-md-3 d-flex justify-content-center" style = "vertical-align: middle;">
+                        <!-- <a href="product_reviews.html?type={{solution.PageID}}" class="justify-content-center"> -->
+                            <i class="fas {{solution.Icon}} fa-6x" style = 'vertical-align: middle;'></i>
+                        <!-- </a> -->
+                    </div>
+                    <div class="col-md-9">
+                        <h4 class="solution">{{solution.DepartmentName}}</h4>
+                        
+                        <p class="employeeIntroduction">
+                            {{solution.Description}}
+                        </p>
+                        <a href="product_reviews.html?type={{solution.PageID}}"><p class="productReviewIntro">See Product Reviews</p></a>
+                    </div>
+                </div>
+                <hr class="partial center"/>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div class="modal fade" id="propertyEditModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="staticBackdropLabel">Add New Property</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid propertyData">
+                        <form action="" name="newPropertyForm" id="newPropertyForm">
+                            <div class="row">
+                                <div class="col">
+                                    {{ form.nickname(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.nickname.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    {{ form.houseNumber(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.houseNumber.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-7">
+                                    {{ form.streetName(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.streetName.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-2">
+                                    {{ form.apptNo(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.apptNo.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-5">
+                                    {{ form.city(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.city.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.state(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.state.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.zipCode(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.zipCode.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    {{ form.bedroomCount(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.bedroomCount.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.bathroomCount(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.bathroomCount.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.parkingCount(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.parkingCount.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.garageCount(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.garageCount.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-5">
+                                    {{ form.homeType(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.homeType.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.storiesCount(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.storiesCount.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.yearBuilt(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.yearBuilt.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-5">
+                                    {{ form.purchaseDate(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.purchaseDate.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-2">
+                                </div>
+                                <div class="col-md-5">
+                                    {{ form.purchasePrice(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.purchasePrice.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    {{ form.schoolDistrict(class="inputField", onchange="validate(this)") }}
+                                    {{ form.schoolDistrict.label(class="inputLabel") }}
+                                </div>
+                                
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- <form action="http://api.hartzlerhome.solutions/admin/properties" method="post">
+                        
+                    </form> -->
+                </div>
+                <div class="modal-footer">
+                    <div class="col col-sm-1">
+                        <img src="{{ url_for('static', filename = 'media/spinner.gif') }}" alt="" id="loadingSpinner" class = "hide">
+                    </div>
+                    <label id="userMessage" class="userMessage"></label>
+                    <button type="button" class="button" tabindex="2" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="button" tabindex="1" id="submitButton" onclick="saveProperty()" disabled>Save</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <script type="text/javascript">
+              
+            function buildJsonData(form) {
+                const jsonData = {};
+                // const addressInfo = ['houseNumber', 'streetName','city','state','zipCode','apptNo']
+                // const details = ['address','bedroomCount','bathroomCount',
+                // 'parkingCount', 'garageCount', 'storiesCount', 'homeType', 'yearBuilt',
+                // 'purchasePrice', 'purchaseDate', 'schoolDistrict', 'nickname']
+                // const junk = []
+                
+                for (const pair of new FormData(form)) {
+                    jsonData[pair[0]] = pair[1];
+                    // if (addressInfo.includes(pair[0])) {
+                    //     jsonData['address'][pair[0]] = pair[1];
+                    // }else if (details.includes(pair[0])) {
+                    //     jsonData[pair[0]] = pair[1];
+                    // }else if (!junk.includes(pair[0])){
+                    //     jsonData['additionalDetails'][pair[0]] = pair[1];
+                    // }
+                };
+                return jsonData
+            }
+
+            function buildHeaders () {
+                const headers = {
+                    "Content-Type": "application/json"
+                };
+                return headers;
+            }
+            async function saveProperty() {
+                const form = document.querySelector("#newPropertyForm");
+                
+                const submitBtn = document.getElementById('submitButton');
+                const spinner = document.getElementById('loadingSpinner');
+                const messageBox = document.getElementById('userMessage');
+                submitBtn.disabled = true;
+                spinner.classList.remove('hide');
+                messageBox.setAttribute("class","")
+                messageBox.innerText = ""
+                setTimeout(() => submitBtn.disabled = false, 2400);
+                setTimeout(() => spinner.classList.add('hide'), 2400);
+                
+                const jsonData = buildJsonData(form);
+                const headers = buildHeaders();
+
+                const response = await submitPostHttpRequest("/properties", headers, jsonData);
+
+                if (response) {
+                    const status = response.status
+                    const jsonResponse = response.message
+                    const saveModal = document.querySelector('#propertyEditModal')
+                    spinner.classList.add('hide')
+                    console.log(jsonResponse)
+                    messageBox.innerText = jsonResponse
+
+                    if (status <300) {
+                        messageBox.setAttribute("class","success");
+                        setTimeout(() => document.location.href = '/properties', 2500)
+                    } else {
+                        messageBox.setAttribute("class", "danger")
+                    }
+                }
+            }
+
+        </script>
+        
+    </main>
+{% endblock %}
