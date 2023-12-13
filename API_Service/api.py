@@ -24,6 +24,8 @@ def isSessionValid(sessionID, ipAddress = None):
     """
     print ("CHECKING SESSION")
     if ipAddress:
+        print ('sessionID: ', sessionID)
+        print ('IPAddress: ', ipAddress)
         preExistingSessions = userSession.query.filter_by(sessionID = sessionID, IPv4_ipAddress = ipAddress).all()
     else:
         preExistingSessions = userSession.query.filter_by(sessionID = sessionID).all()
@@ -442,10 +444,12 @@ class adminProperties(Resource):
 
     def get(self):
         # 'GET' request comes directly from the webpage on a client's browser.
-        if 'sessionID' in request.cookies:
+        print(request.args)
+        if 'sessionID' in request.args:
             ipAddress = request.remote_addr
+            print (ipAddress)
             # ipAddress = request.headers['ipAddress']
-            isValid, sessionOrComment = isSessionValid(request.cookies['sessionID'], ipAddress=ipAddress)
+            isValid, sessionOrComment = isSessionValid(request.args['sessionID'], ipAddress=ipAddress)
             if isValid:
                 sessn = sessionOrComment
                 accntType = sessn.sessionUser.accountAuthority.typeName

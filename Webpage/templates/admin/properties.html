@@ -46,8 +46,20 @@
             max-width: 100%;
             max-height:100%;
         }
+        #tableLoadingSpinner {
+            top: 0;
+            left: 0;
+            max-width: 5%;
+            max-height:5%;
+        }
         .hide {
             display: none;
+        }
+        #userInterface{
+            margin:auto;
+            text-align: center;
+            display: block;
+
         }
 
         
@@ -95,33 +107,86 @@
             <div class="container">
                 <button type="button" data-bs-toggle="modal" data-bs-target="#propertyEditModal" id="newPropertyButton">Add New Property</button>
             </div>
-            <div class="container" id="render_propertiesTable">
-                <table class="propertiesTable">
+            <div class="container table-responsive-lg" id="render_propertiesTable">
+                
+                <table class="table table-striped table-hover propertiesTable">
                     <thead>
                         <tr class="TitleRow">
-
+                            <td diaplay:none class="hide">propertyID</td>
+                            <td>Property Name</td>
+                            <td>Address</td>
+                            <td>City</td>
+                            <td>Home Type</td>
+                            <td>School District</td>
+                            <td># Bedrooms</td>
+                            <td># Bathrooms</td>
                         </tr>
                     </thead>
-                </table>{% for solution in solutions %}
-                <div class="row employee">
-                    <div class="col-md-3 d-flex justify-content-center" style = "vertical-align: middle;">
-                        <!-- <a href="product_reviews.html?type={{solution.PageID}}" class="justify-content-center"> -->
-                            <i class="fas {{solution.Icon}} fa-6x" style = 'vertical-align: middle;'></i>
-                        <!-- </a> -->
-                    </div>
-                    <div class="col-md-9">
-                        <h4 class="solution">{{solution.DepartmentName}}</h4>
+                    <tbody id="propertyTableContent">
                         
-                        <p class="employeeIntroduction">
-                            {{solution.Description}}
-                        </p>
-                        <a href="product_reviews.html?type={{solution.PageID}}"><p class="productReviewIntro">See Product Reviews</p></a>
+                    </tbody>
+                </table>
+            </div>
+            <div class="container justify-content-center" id="userInterface">
+                <div class="row">
+                    <div class="col">
+                        <img src="{{ url_for('static', filename = 'media/spinner.gif') }}" alt="" id="tableLoadingSpinner" class = "">
                     </div>
                 </div>
-                <hr class="partial center"/>
-                {% endfor %}
+                <div class="row">
+                    <div class="col" >
+                        <label alt="" id="userMessage" class = "hide userMessage"></label>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <script type="text/javascript">
+            // takes care of loading the data and creating/populating the table
+            
+            window.onload = function() {
+                loadTable();
+            }
+            async function loadTable () {
+                const messageBox = document.getElementById('userMessage');
+                const loadingSpinner = document.getElementById('tableLoadingSpinner');
+                // 0. hide any usermessage
+                loadingSpinner.classList.remove('hide')
+                messageBox.classList.add('hide')
+                messageBox.classList.remove('danger')
+                messageBox.innerText = ""
+
+                // 1. Get the data for the table
+                
+                const response = await fetch(`http://api.hartzlerhome.solutions/admin/properties?sessionID=${document.cookie.split('=')[1]}`);
+                // console.log(response)
+                const data = await response.json()
+                if (data.status == 200) {
+                    // show Data
+                    let newRows = ``
+                    for (let propertyData of data.properties) {
+                        let newRow = `<tr>
+                            <td diaplay:none class="hide">${propertyData.propertyID}</td>
+                            <td>${propertyData.nickname}</td>
+                            <td>${propertyData.address}</td>
+                            <td>${propertyData.city}</td>
+                            <td>${propertyData.homeType}</td>
+                            <td>${propertyData.schoolDistrict}</td>
+                            <td>${propertyData.bedrms}</td>
+                            <td>${propertyData.bathrms}</td>
+                        </tr>`
+                        newRows += newRow
+                    }
+                    document.getElementById('propertyTableContent').innerHTML = newRows
+                } else {
+                    console.log(data)
+                    messageBox.classList.remove('hide')
+                    messageBox.innerText = data.message
+                    messageBox.classList.add('danger')
+                }
+                loadingSpinner.classList.add('hide')
+            }
+        </script>
 
         <!-- Modal -->
         <div class="modal fade" id="propertyEditModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
@@ -237,9 +302,9 @@
                 </div>
               </div>
             </div>
-          </div>
-          
-          <script type="text/javascript">
+        </div>
+        
+        <script type="text/javascript">
               
             function buildJsonData(form) {
                 const jsonData = {};
