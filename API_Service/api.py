@@ -716,6 +716,7 @@ api.add_resource(rentRoll, '/rent')
 api.add_resource(getRentRoll, '/admin/rent/roll')
 
 # Leases Page
+# api.add_resource(adminLeases, '/admin/leases')
 
 
 # People
