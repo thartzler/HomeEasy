@@ -5,12 +5,33 @@ from flask import request, make_response, render_template
 import requests, json
 
 
-from wtforms import Form, BooleanField, StringField, validators, DateField, IntegerField, DecimalField
+from wtforms import Form, BooleanField, StringField, validators, DateField, IntegerField, DecimalField, PasswordField
 
 def roundToHalf(value):
     value = value-0.5
     value = value.round(0)
     return value +0.5
+
+class newUserForm(Form):
+    firstName= StringField('First Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
+    lastName= StringField('Last Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
+    companyName= StringField('Company Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
+    emailAddress= StringField('Email Address*', [validators.DataRequired(),validators.Length(max=50)])
+    houseNumber= StringField('House No.*', [validators.DataRequired()])
+    streetName= StringField('Street*', [validators.DataRequired(),validators.Length(max=30)])
+    apptNo= StringField('Appt No.',[validators.Length(max=6)])
+    city= StringField('City*', [validators.DataRequired(),validators.Length(max=30)])
+    state= StringField('State*', [validators.DataRequired(), validators.Regexp('[A-Z]{2}'), validators.Length(min=2, max=2)])
+    zipCode= StringField('Zip Code*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(min=5, max=5)])
+    companyPhone= StringField('Company Phone*', [validators.DataRequired(), validators.Regexp('[0-9]{3}-[0-9]{3}-[0-9]{4}'), validators.Length(min=10, max=12)])
+    phoneNumber= StringField('Personal Phone Number*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(min=10, max=10)])
+    password= PasswordField('Password*', [
+            validators.DataRequired(),\
+            validators.EqualTo('password_confirm', message='Passwords must already match!')\
+        ])
+    password_confirm= PasswordField('Verify Password*', [validators.DataRequired()])
+
+
 
 
 class newPropertyForm(Form):
@@ -63,7 +84,33 @@ def getUser(sessionID: str = None, ipAddress: str = None):
         userType =  responseData['userType']
         print ("UserType: ", userType)
     return UserMaker().MakeUser(userType = userType, sessionID = sessionID)
+
+def _newLandlord(requestInfo):
+    requestData = requestInfo.get_json()
+
+    url = 'http://api.hartzlerhome.solutions/newLandlord'
+    jsonData = { 'additionalDetails':{ } , 'address': { } }
+    addressInfo = ['houseNumber', 'streetName','city','state','zipCode','apptNo']
+    details = ['address','firstName', 'lastName', 'phoneNumber', 'emailAddress', 'password','companyName', 'companyPhone']
+    junk = ['password_confirm']
     
+    for key,values in requestData.items():
+        if key in addressInfo:
+            jsonData['address'][key] = values
+        elif key in details:
+            jsonData[key] = values
+        elif key not in junk:
+            jsonData['additionalDetails'][key] = values
+    payload = json.dumps(jsonData)
+
+    headers = {'Content-Type': 'application/json'}
+    responseData = requests.request("POST", url, headers=headers, data=payload).json()
+    # {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
+    if responseData:
+        return responseData
+    else:
+        return {'status': 500, 'message': 'Issue creating an account'}
+
 def _saveProperty(requestInfo):
     requestData = requestInfo.get_json()
     
@@ -186,6 +233,13 @@ class User:
         print ("I'm HERE")
         self = UserMaker().MakeUser()
         return self
+
+    def newLandlord(self, requestInfo):
+        return _newLandlord(requestInfo)
+
+    def getNewLandlordPage(self, sessionInfo):
+        form = newUserForm(request.form)
+        return render_template('newUser.html', headerData = self.headerContents, form=form)
 
     def getLeasesPage(self, sessionInfo):
         resp = make_response(render_template('unauthorized.html', headerData = self.headerContents, loggedOut = self.userSession==None))

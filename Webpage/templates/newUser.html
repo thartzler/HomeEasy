@@ -276,19 +276,10 @@
                 <script type="text/javascript">
                 
                 function buildJsonData(form) {
-                    const jsonData = { 'additionalDetails':{ } , 'address': { } };
-                    const addressInfo = ['houseNumber', 'streetName','city','state','zipCode','apptNo']
-                    const details = ['address','firstName', 'lastName', 'phoneNumber', 'emailAddress', 'password','companyName', 'companyPhone']
-                    const junk = ['password_confirm']
+                    const jsonData = { };
                     
                     for (const pair of new FormData(form)) {
-                        if (addressInfo.includes(pair[0])) {
-                            jsonData['address'][pair[0]] = pair[1];
-                        }else if (details.includes(pair[0])) {
-                            jsonData[pair[0]] = pair[1];
-                        }else if (!junk.includes(pair[0])){
-                            jsonData['additionalDetails'][pair[0]] = pair[1];
-                        }
+                        jsonData[pair[0]] = pair[1];
                     };
                     return jsonData
                 }
@@ -321,7 +312,7 @@
                     
                     const headers = buildHeaders();
                     
-                    const response = await submitPostHttpRequest(`http://api.hartzlerhome.solutions/newLandlord`, headers, jsonData);
+                    const response = await submitPostHttpRequest(`/newUser`, headers, jsonData);
                     if (response) {
                         const status = response.status
                         const jsonResponse = response.message

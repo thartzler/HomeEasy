@@ -1,6 +1,5 @@
 from flask import Flask, render_template, url_for, request, redirect, make_response
 import json
-from wtforms import Form, BooleanField, StringField, PasswordField, validators
 
 from datetime import datetime, timedelta
 import secrets
@@ -8,26 +7,6 @@ from userTypes import getUser, TenantUser, Property_Manager_User, AdminUser,Logg
 from DB_Object_Creator import db, Department, webSession, property
 
 # from SessionStates import LoggedInState, LoggedOutState
-
-
-class newUserForm(Form):
-    firstName= StringField('First Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
-    lastName= StringField('Last Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
-    companyName= StringField('Company Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
-    emailAddress= StringField('Email Address*', [validators.DataRequired(),validators.Length(max=50)])
-    houseNumber= StringField('House No.*', [validators.DataRequired()])
-    streetName= StringField('Street*', [validators.DataRequired(),validators.Length(max=30)])
-    apptNo= StringField('Appt No.',[validators.Length(max=6)])
-    city= StringField('City*', [validators.DataRequired(),validators.Length(max=30)])
-    state= StringField('State*', [validators.DataRequired(), validators.Regexp('[A-Z]{2}'), validators.Length(min=2, max=2)])
-    zipCode= StringField('Zip Code*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(min=5, max=5)])
-    companyPhone= StringField('Company Phone*', [validators.DataRequired(), validators.Regexp('[0-9]{3}-[0-9]{3}-[0-9]{4}'), validators.Length(min=10, max=12)])
-    phoneNumber= StringField('Personal Phone Number*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(min=10, max=10)])
-    password= PasswordField('Password*', [
-            validators.DataRequired(),\
-            validators.EqualTo('password_confirm', message='Passwords must already match!')\
-        ])
-    password_confirm= PasswordField('Verify Password*', [validators.DataRequired()])
 
 
 
@@ -82,11 +61,14 @@ def loginPage():
         else:
             return render_template('login.html', headerData = current_member.headerContents)
 
-@app.route('/newUser',  methods = ['GET'])
+@app.route('/newUser', methods = ['GET', 'POST'])
 def newUserPage():
-    form = newUserForm(request.form)
     current_member = getCurrentUser(request)
-    return render_template('newUser.html', headerData = current_member.headerContents, form=form)
+    if request.method == 'GET':
+        return current_member.getNewLandlordPage(request)
+    else:
+        resp = current_member.newLandlord(request)
+        return resp, resp['status']
 
 @app.route('/logout')
 def logoutPage():
