@@ -144,8 +144,8 @@ class address(db.Model):
     state =         db.Column(db.VARCHAR(2), nullable = False)
     zipCode =       db.Column(db.Numeric(5,0), nullable = False)
 
-    # companiesWithMailingAddress = db.relationship('company', back_populates='companyMailingAddress') #done
-    # companiesWithBillingAddress = db.relationship('company', back_populates='companyBillingAddress') #done
+    companiesWithMailingAddress = db.relationship('company', foreign_keys = 'company.mailingAddress', back_populates='companyMailingAddress') #done
+    companiesWithBillingAddress = db.relationship('company', foreign_keys = 'company.billingAddress', back_populates='companyBillingAddress') #done
     relatedPerson = db.relationship('person', back_populates='associatedAddress')       #done
     propertyAddress = db.relationship('property', back_populates='fullAddress')         #done
     # currentApplicantAddress = db.relationship('application', back_populates='currentApplicantDetailedAddress')  #missing - STRETCH
@@ -171,8 +171,8 @@ class company(db.Model):
     createdBy =         db.Column(db.Integer, db.ForeignKey('userAccounts.userID'), nullable = False)
     createDate =        db.Column(db.DateTime, nullable = False)
 
-    companyMailingAddress =    db.relationship('address', foreign_keys=[mailingAddress])#back_populates='companiesWithMailingAddress')  #done
-    companyBillingAddress =    db.relationship('address', foreign_keys=[billingAddress])#, back_populates='companiesWithBillingAddress')  #done
+    companyMailingAddress =    db.relationship('address', foreign_keys=[mailingAddress], back_populates='companiesWithMailingAddress')  #done
+    companyBillingAddress =    db.relationship('address', foreign_keys=[billingAddress], back_populates='companiesWithBillingAddress')  #done
     ownedProperty =     db.relationship('property', back_populates='propertyOwner')         #done
     relatedPersonRole = db.relationship('companyRole', back_populates='associatedCompany')       #done
     companyCreator =    db.relationship('userAccount', back_populates='authoredCompanies')    #done
@@ -233,8 +233,8 @@ class person(db.Model):
     addressID = db.Column(db.Integer, db.ForeignKey("userAddresses.addressID"), nullable = True)
     createdOn = db.Column(db.DateTime, nullable = False)
 
-    # relatedPersonDetail =   db.relationship('personDetail', back_populates='associatedPerson')    #done
-    # personDetailSetPerson = db.relationship('personDetail', back_populates='associatedCreator') #done
+    relatedPersonDetails =  db.relationship('personDetail', foreign_keys= 'personDetail.personID', back_populates='associatedPerson')    #done
+    personDetailSetPerson = db.relationship('personDetail', foreign_keys= 'personDetail.setPersonID', back_populates='associatedCreator') #done
     # personReference =       db.relationship('reference',    back_populates='referencePerson')   #missing - Stretch
     # personEmploymentHistories = db.relationship('employmentHistory', back_populates='employmentHistoryPerson')   #missing - Stretch
     # personEmploymentSupervisor = db.relationship('employmentHistory', back_populates='employmentSupervisorPerson')   #missing - Stretch
@@ -260,9 +260,9 @@ class personDetail(db.Model):
     setDate =       db.Column(db.DateTime, nullable = False)
     setPersonID =   db.Column(db.Integer, db.ForeignKey("userPeople.personID"), nullable = False)
 
-    associatedPerson = db.relationship('person', foreign_keys=[personID])#, back_populates='relatedPersonDetail')      #done
+    associatedPerson = db.relationship('person', foreign_keys=[personID], back_populates='relatedPersonDetails')      #done
     associatedDetail = db.relationship('personDetailOption', back_populates='personDetailName') #done
-    associatedCreator = db.relationship('person', foreign_keys=[setPersonID])#, back_populates='personDetailSetPerson')   #done
+    associatedCreator = db.relationship('person', foreign_keys=[setPersonID], back_populates='personDetailSetPerson')   #done
 
     def __repr__(self) -> str:
         return "<personDetail(personID = '%i', detailID = '%i', rev = '%i', propertyValue = '%s')>" %(self.personID, self.detailID, self.rev, self.propertyValue)
