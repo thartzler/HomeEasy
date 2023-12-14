@@ -10,7 +10,6 @@ from DB_Object_Creator import db, Department, webSession, property
 # from SessionStates import LoggedInState, LoggedOutState
 
 
-# from DB_Object_Creator import 
 class newUserForm(Form):
     firstName= StringField('First Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
     lastName= StringField('Last Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
@@ -120,10 +119,15 @@ def leases():
     current_member = getCurrentUser(request)
     return current_member.getLeasesPage(request)
 
-@app.route('/people')
+@app.route('/people', methods = ['GET', 'POST'])
 def people():
     current_member = getCurrentUser(request)
-    return current_member.getPeoplePage(request)
+    if request.method == 'GET':
+        return current_member.getPeoplePage(request)
+    else:
+        resp = current_member.savePerson(request)
+        print (resp)
+        return resp, resp['status']
 
 @app.route('/properties', methods = ['GET', 'POST'])
 def properties():

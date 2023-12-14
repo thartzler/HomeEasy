@@ -12,12 +12,6 @@
             text-align: center;
             margin:15px 0px;
         }
-        .ourSolutions{
-            max-width: 80%;
-        }
-        .solution {
-            margin: 10px 0;
-        }
         
     </style>
     
@@ -342,9 +336,9 @@
                 submitBtn.disabled = true;
                 spinner.classList.remove('hide');
                 messageBox.setAttribute("class","")
-                messageBox.innerText = ""
-                setTimeout(() => submitBtn.disabled = false, 2400);
-                setTimeout(() => spinner.classList.add('hide'), 2400);
+                messageBox.innerText = "Timeout: No response from server"
+                setTimeout(() => submitBtn.disabled = false, 20000);
+                setTimeout(() => spinner.classList.add('hide'), 20000);
                 
                 const jsonData = buildJsonData(form);
                 const headers = buildHeaders();
@@ -364,6 +358,9 @@
                         setTimeout(() => document.location.href = '/properties', 2500)
                     } else {
                         messageBox.setAttribute("class", "danger")
+                        if ('redirect' in response){
+                            setTimeout(()=> document.location.href = response['redirect'], 2500);
+                        }
                     }
                 }
             }

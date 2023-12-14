@@ -11,7 +11,8 @@ def roundToHalf(value):
     value = value-0.5
     value = value.round(0)
     return value +0.5
-# from DB_Object_Creator import 
+
+
 class newPropertyForm(Form):
     nickname= StringField('Nickname*', [validators.DataRequired(), validators.Length(max=50)])
     houseNumber= IntegerField('House No.*', [validators.DataRequired()])
@@ -32,6 +33,20 @@ class newPropertyForm(Form):
     purchasePrice = IntegerField('Purchase Price*', [validators.DataRequired(), validators.Regexp('[0-9]+')])
     schoolDistrict = StringField('School District*', [validators.DataRequired(), validators.Length(max=50)])
     
+class newTenantUserForm(Form):
+    firstName= StringField('First Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
+    middleName= StringField('Middle Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
+    lastName= StringField('Last Name*', [validators.DataRequired(), validators.Regexp('[A-Za-z]+'),validators.Length(max=50)])
+    
+    emailAddress= StringField('Email Address*', [validators.DataRequired(),validators.Length(max=50)])
+    
+    phoneNumber= StringField('Daytime Phone Number*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(min=10, max=10)])
+    cellPhoneNumber= StringField('Cell Phone Number*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.Length(min=10, max=10)])
+    
+    DOB = DateField('Birth Date*', [validators.DataRequired()])
+    cars= StringField('Vehicle(s)*', [validators.DataRequired(),validators.Length(max=50)])
+    
+    comments= StringField('Comments*',[validators.DataRequired(),validators.Length(max=50)])
 
 
 
@@ -49,7 +64,68 @@ def getUser(sessionID: str = None, ipAddress: str = None):
         print ("UserType: ", userType)
     return UserMaker().MakeUser(userType = userType, sessionID = sessionID)
     
+def _saveProperty(requestInfo):
+    requestData = requestInfo.get_json()
+    
+    url = 'http://api.hartzlerhome.solutions/admin/properties'
+    payload = json.dumps({
+        "address": {
+            "houseNumber": int(requestData['houseNumber']),
+            "streetName": requestData['streetName'],
+            "city": requestData['city'],
+            "state": requestData['state'],
+            "zipCode": int(requestData['zipCode'])
+        },
+        "bedroomCount": int(requestData['bedroomCount']),
+        "bathroomCount": round(float(requestData['bathroomCount'])*2,0)/2,
+        "parkingCount": int(requestData['parkingCount']),
+        "garageCount": int(requestData['garageCount']),
+        "homeType": requestData['homeType'],
+        "storiesCount": float(requestData['storiesCount']),
+        "yearBuilt": int(requestData['yearBuilt']),
+        "purchasePrice": int(requestData['purchasePrice']),
+        "purchaseDate": requestData['purchaseDate'],
+        "schoolDistrict": requestData['schoolDistrict'],
+        "nickname": requestData['nickname'],
+        "sessionID": requestInfo.cookies['sessionID'],
+        "ipAddress": requestInfo.remote_addr
+    })
+    
+    headers = {'Content-Type': 'application/json'}
+    responseData = requests.request("POST", url, headers=headers, data=payload).json()
+    # {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
+    if responseData:
+        return responseData
+    else:
+        return {'status': 500, 'message': 'Issue saving the property'}
 
+def _savePerson(requestInfo):
+    
+    requestData = requestInfo.get_json()
+    print ('requestData: ',requestData)
+    coreItems = ['firstName', 'lastName', 'emailAddress', 'phoneNumber']
+    addlDets = {}
+    for key in requestData:
+        if key not in coreItems:
+            addlDets[key] = requestData[key]
+    url = 'http://api.hartzlerhome.solutions/admin/people'
+    payload = json.dumps({
+        "firstName": requestData['firstName'],
+        "lastName": requestData['lastName'],
+        "emailAddress": requestData['emailAddress'],
+        "phoneNumber": requestData['phoneNumber'],
+        "additionalDetails": addlDets,
+        "sessionID": requestInfo.cookies['sessionID'],
+        "ipAddress": requestInfo.remote_addr
+    })
+    headers = {'Content-Type': 'application/json'}
+    responseData = requests.request("POST", url, headers=headers, data=payload).json()
+    print ("Response: ", responseData)
+    if responseData:
+        return responseData
+    else:
+        return {'status': 500, 'message': 'There was an issue and the person was not saved'}
+    
 
 
 class UserMaker:
@@ -123,9 +199,14 @@ class User:
         resp = make_response(render_template('unauthorized.html', headerData = self.headerContents, loggedOut = self.userSession==None))
         return resp
     
+    def saveLease(self, requestInfo):
+        return {'status': 401, 'message': 'You must be logged in', 'redirect': '/login'}
+    
+    def savePerson(self, requestInfo):
+        return {'status': 401, 'message': 'You must be logged in', 'redirect': '/login'}
+    
     def saveProperty(self, requestInfo):
-        
-        return {'status': 401, 'message': 'You must be logged in', 'redirect': '/login'}, 401
+        return {'status': 401, 'message': 'You must be logged in', 'redirect': '/login'}
 
 
 class LoggedOutUser(User):
@@ -136,25 +217,14 @@ class LoggedOutUser(User):
         self.userAccount = None
         self.headerContents = [{'name': "Home", 'link': "/", 'pageID': "index"}, {'name': "Login", 'link': "/login", 'pageID': "login"}]
     
-    # getPeoplePage() -> parent definition
-    # saveProperty() -> parent definition
+    # getPeoplePage()   -> parent definition
+    # saveLease()       -> parent definition
+    # savePerson()      -> parent definition
+    # saveProperty()    -> parent definition
 
     def createAnAccount(self, username, passHash, firstName, lastName, address, emailAddress, phoneNumber):
         pass
-        #FUTURE: Make this function interact with the API?
-        # newUser = userAccount(username = username, accountType=2, emailAddress = emailAddress, passHash = passHash)
-        # try:
-            
-        #     db.session.add(newUser)
-        #     db.session.commit()
-        #     newPerson = person(firstName = firstName, lastName = lastName, phoneNumber = phoneNumber, DOB="unknown", createdBy=newUser)
-        #     db.session.add(newPerson)
-        #     db.session.commit()
-        #     newUser.personID = newPerson.personID
-        #     db.session.update(newPerson)
-        #     db.session.commit()
-        # except:
-        #     return False, "There was an error saving the account to the DB"
+        #FUTURE: Make this function interact with the API? issue #44
         
 class TenantUser(User):
     def __init__(self, *args, **kwargs) -> None:
@@ -166,60 +236,12 @@ class TenantUser(User):
 
     # getPeoplePage() -> parent definition
 
+    def savePerson(self, requestInfo):
+        return _savePerson(requestInfo= requestInfo)
+    
     def saveProperty(self, requestInfo):
-        requestData = requestInfo.json()
-        
-        url = 'http://api.hartzlerhome.solutions/admin/properties'
-        payload = json.dumps({
-            "address": {
-                "houseNumber": int(requestData['houseNumber']),
-                "streetName": requestData['streetName'],
-                "city": requestData['city'],
-                "state": requestData['state'],
-                "zipCode": int(requestData['zipCode'])
-            },
-            "bedroomCount": int(requestData['bedroomCount']),
-            "bathroomCount": round(float(requestData['bathroomCount'],0)*2)/2,
-            "parkingCount": int(requestData['parkingCount']),
-            "garageCount": int(requestData['garageCount']),
-            "storiesCount": float(requestData['storiesCount']),
-            "homeType": requestData['homeType'],
-            "purchasePrice": int(requestData['purchasePrice']),
-            "purchaseDate": datetime.strptime(requestData['purchaseDate'],'%m/%d/%Y'),
-            "schoolDistrict": requestData['schoolDistrict'],
-            "nickname": requestData['nickname'],
-            "sessionID": requestInfo.cookies['sessionID'],
-            "ipAddress": requestInfo.remote_addr
-        })
-        
-        headers = {'Content-Type': 'application/json'}
-        responseData = requests.request("POST", url, headers=headers, data=payload).json()
-        # {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
-        if responseData:
-            return responseData
-        else:
-            return {'status': 500, 'message': 'Issue saving the property'}, 500
+        return _saveProperty(requestInfo= requestInfo)
 
-    # viewBlogPost() -> parent definition
-    # viewComments() -> Parent definition
-    # writeComment() -> Parent definition
-    # deleteComment() -> Parent definition
-    # likeComment() -> parent definition
-    # likePost() -> Parent definition
-
-    # def becomeProperty_Manager_User(self, membershipLevel, paymentDate, expirationDate, TransactionID):
-        
-    #     newMembership = Memberships(username = self.User.Username, accountType = membershipLevel, paymentDate = paymentDate, expirationDate = expirationDate, TransactionID = TransactionID)
-    #     try:
-    #         db.session.add(newMembership)
-    #         db.session.commit()
-    #         mm = UserMaker()
-    #         self = mm.MakeUser(user = self.User, userSession = self.userSession, user_account = newMembership)
-    #         return True, self
-    #     except:
-    #         return False, "There was an error saving the account to the DB"
-
-        
         
 class Property_Manager_User(User):
     def __init__(self, *args, **kwargs) -> None:
@@ -237,7 +259,7 @@ class Property_Manager_User(User):
         return resp
     
     def getPeoplePage(self, sessionInfo):
-        form = newPropertyForm(request.form)
+        form = newTenantUserForm(request.form)
         resp = make_response(render_template('admin/people.html', headerData = self.headerContents, form=form))
         return resp
     
@@ -246,52 +268,12 @@ class Property_Manager_User(User):
         resp = make_response(render_template('admin/properties.html', headerData = self.headerContents, form=form))
         return resp
 
+    def savePerson(self, requestInfo):
+        return _savePerson(requestInfo= requestInfo)
+    
     def saveProperty(self, requestInfo):
-        requestData = requestInfo.get_json()
-        
-        url = 'http://api.hartzlerhome.solutions/admin/properties'
-        payload = json.dumps({
-            "address": {
-                "houseNumber": int(requestData['houseNumber']),
-                "streetName": requestData['streetName'],
-                "city": requestData['city'],
-                "state": requestData['state'],
-                "zipCode": int(requestData['zipCode'])
-            },
-            "bedroomCount": int(requestData['bedroomCount']),
-            "bathroomCount": round(float(requestData['bathroomCount'])*2,0)/2,
-            "parkingCount": int(requestData['parkingCount']),
-            "garageCount": int(requestData['garageCount']),
-            "homeType": requestData['homeType'],
-            "storiesCount": float(requestData['storiesCount']),
-            "yearBuilt": int(requestData['yearBuilt']),
-            "purchasePrice": int(requestData['purchasePrice']),
-            "purchaseDate": requestData['purchaseDate'],
-            "schoolDistrict": requestData['schoolDistrict'],
-            "nickname": requestData['nickname'],
-            "sessionID": requestInfo.cookies['sessionID'],
-            "ipAddress": requestInfo.remote_addr
-        })
-        
-        headers = {'Content-Type': 'application/json'}
-        responseData = requests.request("POST", url, headers=headers, data=payload).json()
-        # {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
-        if responseData:
-            return responseData
-        else:
-            return {'status': 500, 'message': 'Issue saving the property'}, 500
-
-    # def viewBlogPost(self, id):
-    #     return BlogPost.query.filter_by(ReviewID = id).first_or_404()
-
-    def cancelMembership(self):
-        try:
-            self.userAccount.accountType -= 1
-            db.session.commit()
-            self = UserMaker().MakeUser(user = self.User, userSession = self.userSession, user_account = self.userAccount)
-            return True, self
-        except:
-            return False, "There was an error saving the account to the DB"
+        print (requestInfo)
+        return _saveProperty(requestInfo)
 
 
 class AdminUser(User):
@@ -307,91 +289,12 @@ class AdminUser(User):
         
 
     def getPeoplePage(self, sessionInfo):
-
-        resp = make_response(render_template('admin/people.html', headerData = self.headerContents, loggedOut = self.userSession==None))
+        form = newTenantUserForm(request.form)
+        resp = make_response(render_template('admin/people.html', headerData = self.headerContents, form=form))
         return resp
 
-    def saveProperty(self, requestInfo):
-        requestData = requestInfo.json()
-        
-        url = 'http://api.hartzlerhome.solutions/admin/properties'
-        payload = json.dumps({
-            "address": {
-                "houseNumber": int(requestData['houseNumber']),
-                "streetName": requestData['streetName'],
-                "city": requestData['city'],
-                "state": requestData['state'],
-                "zipCode": int(requestData['zipCode'])
-            },
-            "bedroomCount": int(requestData['bedroomCount']),
-            "bathroomCount": round(float(requestData['bathroomCount'],0)*2)/2,
-            "parkingCount": int(requestData['parkingCount']),
-            "garageCount": int(requestData['garageCount']),
-            "storiesCount": float(requestData['storiesCount']),
-            "homeType": requestData['homeType'],
-            "purchasePrice": int(requestData['purchasePrice']),
-            "purchaseDate": datetime.strptime(requestData['purchaseDate'],'%m/%d/%Y'),
-            "schoolDistrict": requestData['schoolDistrict'],
-            "nickname": requestData['nickname'],
-            "sessionID": requestInfo.cookies['sessionID'],
-            "ipAddress": requestInfo.remote_addr
-        })
-        
-        headers = {'Content-Type': 'application/json'}
-        responseData = requests.request("POST", url, headers=headers, data=payload).json()
-        # {'status': 200, 'message': "New session has been made", 'sessionID': session2Add.sessionID}
-        if responseData:
-            return responseData
-        else:
-            return {'status': 500, 'message': 'Issue saving the property'}, 500
-        
-        
-    # def viewBlogPost(self, id):
-    #     return BlogPost.query.filter_by(ReviewID = id).first_or_404()
-
-    # def approveComment(self, comment_id):
-    #     try:
-    #         comment = Comments.query.filter_by(CommentID = comment_id).first_or_404()
-    #         comment.approvedBy = self.EmployeeInfo.EmployeeID
-    #         comment.approveddate = datetime.utcnow()
-    #         db.session.commit()
-    #         return True, "The comment has been approved"
-    #     except:
-            
-    #         return False, "There was some problem approving the comment"
+    def savePerson(self, requestInfo):
+        return _savePerson(requestInfo= requestInfo)
     
-    # def rejectComment(self, comment_id):
-    #     try:
-    #         comment = Comments.query.filter_by(CommentID = comment_id).first_or_404()
-    #         comment.approvedBy = self.EmployeeInfo.EmployeeID
-    #         db.session.commit()
-    #         return True, "The comment has been removed"
-    #     except:
-    #         return False, "There was an error taking the comment down"
-
-    # def newPost(self, Product, title, review_text, is_free):
-    #     try:
-    #         new_post = BlogPost(ProductID = Product.ProductID, ReviewerID = self.EmployeeInfo.EmployeeID, Title = title, ReviewText = review_text, Revision = 0, LastEditDate = datetime.utcnow(), isFree = is_free)
-    #         db.session.add(new_post)
-    #         db.session.commit()
-    #         return True, "The post has been saved"
-    #     except:
-    #         return False, "There was an error saving the post"
-
-    # def savePost(self, Product, title, review_text, is_free, revision, revision_reason):
-    #     try:
-    #         new_post = BlogPost(ProductID = Product.ProductID, ReviewerID = self.EmployeeInfo.EmployeeID, Title = title, ReviewText = review_text, OriginalPostDate = datetime.utcnow(), Revision = revision, LastEditDate = datetime.utcnow(), isFree = is_free, RevisionReason = revision_reason)
-    #         db.session.add(new_post)
-    #         db.session.commit()
-    #         return True, "The post has been saved"
-    #     except:
-    #         return False, "There was an error saving the post"
-
-    # def publishPost(self, blog_post, publish_datetime, approval_editor = None):
-    #     try:
-    #         blog_post.OriginalPostDate = publish_datetime
-    #         #blog_post.ReviewingEditor = approval_editor
-    #         db.session.commit()
-    #         return True, "The post has been scheduled for publish" # pending editor approval
-    #     except:
-    #         return False, "There was an error scheduling the post for publishing"
+    def saveProperty(self, requestInfo):
+        return _saveProperty(requestInfo= requestInfo)
