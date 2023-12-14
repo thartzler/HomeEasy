@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block pageInfo %}
+
+    <style type="text/css" rel="stylesheet/css">
+        
+        main {
+            margin-top: calc(max(5vh, 50px));
+            padding-top: 30px;
+        }
+        main h1{
+            text-align: center;
+            margin:15px 0px;
+        }
+        .ourSolutions{
+            max-width: 80%;
+        }
+        .solution {
+            margin: 10px 0;
+        }
+        
+    </style>
+    
+    <style type="text/css" rel="stylesheet/css">
+        /* .navbar-dark{
+            
+        } */
+        .secondary-nav-item {
+            color:#212529; /* @tertiaryColor */
+        }
+        .secondNavbar {
+            
+            box-shadow: 0px 5px 8px grey;
+        }
+        main {
+            margin-top: calc(max(5vh, 50px) + 83px);
+            padding-top: 30px;
+        }
+        main h1{
+            text-align: center;
+            margin:15px 0px;
+        }
+        .ourTeam{
+            max-width: 80%;
+        }
+        .team {
+            margin: 10px 0;
+        }
+        #rentRollTable {
+            width: 100%
+        }
+        
+    </style>
+
+    <!-- Include script for font awesome icon library -->
+    <script defer src="https://use.fontawesome.com/releases/v6.5.1/js/all.js"></script>
+
+
+{% endblock %}
+
+
+{% block mainContent %}
+    <main>
+        <div class="container rentRoll">
+            <h1>Rent Roll</h1>
+            <div class="container">
+                <button id="newPersonButton"><i class="fa-solid fa-user-plus" style="padding-left: 5px;padding-right: 5px;"></i> Add new tenant</button>
+            </div>
+            <div class="container" id="render_rentRollTable">
+                <table id="rentRollTable">
+                    <thead>
+                        <tr class="TitleRow">
+                            <td>Tenant - Property</td>
+                            {% for month in monthlist %}
+                            <td>{{ month }}</td>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for property in rentRollList %}
+                        <tr class="property">
+                            <td display:none>{{ property.propertyID }}</td>
+                            {% if property.renters %}
+                            <td>{{ property.renters }} <br/> {{property.address}}</td>
+                            {% else %}
+                            <td>--empty--<br/> {{property.address}}</td>
+                            {% endif %}
+                            
+                            {% for month in monthlist %}
+                            <td>
+                                {% if property.isPaid(month) %}
+                                <a><i class="fas square-check fa-6x" style = 'vertical-align: middle;'></i></a>
+                                {% elif property.isOpen %}
+                                <a><i class="fas square-minus fa-6x" style = 'vertical-align: middle;'></i></a>
+                                {% else %}
+                                <a><h4 style = 'vertical-align: middle;'>${{ property.monthlyRentFee }}</h4></a>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+        
+
+        
+    </main>
+{% endblock %}

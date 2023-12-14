@@ -111,6 +111,10 @@ class User:
         self = UserMaker().MakeUser()
         return self
 
+    def getLeasesPage(self, sessionInfo):
+        resp = make_response(render_template('unauthorized.html', headerData = self.headerContents, loggedOut = self.userSession==None))
+        return resp
+    
     def getPeoplePage(self, sessionInfo):
         resp = make_response(render_template('unauthorized.html', headerData = self.headerContents, loggedOut = self.userSession==None))
         return resp
@@ -227,6 +231,11 @@ class Property_Manager_User(User):
                                 # {'name': "Maintenance",     'link': "/maintenance",     'pageID': "maintenance"}, \
                                 {'name': "Logout",          'link': "/logout",          'pageID': "logout"}]
         
+    def getLeasesPage(self, sessionInfo):
+        form = newPropertyForm(request.form)
+        resp = make_response(render_template('admin/leases.html', headerData = self.headerContents, form=form))
+        return resp
+    
     def getPeoplePage(self, sessionInfo):
         form = newPropertyForm(request.form)
         resp = make_response(render_template('admin/people.html', headerData = self.headerContents, form=form))

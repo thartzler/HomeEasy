@@ -512,6 +512,7 @@ class adminProperties(Resource):
             return {'status': 401, 'message': 'Unauthorized: You must be logged in to view this request'}, 401
 
     def post(self):
+        print ("RemoteAddr: ",request.remote_addr)
         # 'POST' request comes from the HomeEasy webserver (form post gets processed and requests to be saved here).
         if request.remote_addr != '10.1.1.4' and request.remote_addr != '127.0.0.1' and request.remote_addr != '24.101.69.174':
             return {'status': 403, 'message': 'Forbidden: You cannot view this request'}, 403

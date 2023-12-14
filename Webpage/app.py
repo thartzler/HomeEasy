@@ -115,6 +115,11 @@ def rent_roll():
         
         return render_template('unauthorized.html', headerData = current_member.headerContents, loggedOut = True)
     
+@app.route('/leases')
+def leases():
+    current_member = getCurrentUser(request)
+    return current_member.getLeasesPage(request)
+
 @app.route('/people')
 def people():
     current_member = getCurrentUser(request)
