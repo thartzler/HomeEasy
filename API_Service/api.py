@@ -503,13 +503,13 @@ class adminPeople(Resource):
                                         addedDetails[additionalDetail.associatedDetail.propertyName] = additionalDetail.propertyValue
                                 data = {
                                     'personID':     person_i.personID,
-                                    'name':    person_i.firstName + person_i.lastName,
+                                    'name':    person_i.firstName + " " + person_i.lastName,
                                     'phoneNumber':  person_i.phoneNumber,
                                     'cellPhoneNumber':  addedDetails['cellPhoneNumber'],
                                     'emailAddress': person_i.personsAccount[0].emailAddress,
                                     'DOB': addedDetails['DOB'],
                                     'cars':  addedDetails['cars'],
-                                    'commments':  addedDetails['comments']
+                                    'comments':  addedDetails['comments']
                                 }
                                 
                                 returnData['people'].append(data)
