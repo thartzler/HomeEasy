@@ -158,25 +158,29 @@
                 // 1. Get the data for the table
                 
                 const response = await fetch(`http://api.hartzlerhome.solutions/admin/leases?sessionID=${document.cookie.split('=')[1]}`);
-                // console.log(response)
                 const data = await response.json()
+                console.log(data)
                 if (data.status == 200) {
                     // show Data
-                    let newRows = ``
+                    let newRows = ``;
+                    console.log(data.leases)
                     for (let leaseData of data.leases) {
                         let newRow = `<tr>
                             <td diaplay:none class="hide">${leaseData.leaseID}</td>
-                            <td>${leaseData.name}</td>
-                            <td>${leaseData.phoneNumber}</td>
-                            <td>${leaseData.cellPhoneNumber}</td>
-                            <td>${leaseData.emailAddress}</td>
-                            <td>${leaseData.DOB}</td>
-                            <td>${leaseData.cars}</td>
-                            <td>${leaseData.comments}</td>
+                            <td>${leaseData.nickname} ${leaseData.address}</td>
+                            <td>${leaseData.tenants}</td>
+                            <td>${leaseData.monthlyRent}</td>
+                            <td>${leaseData.monthlyFees}</td>
+                            <td>${leaseData.leasePeriod}</td>
+                            <td>${leaseData.moveInDate}</td>
+                            <td>${leaseData.endDate}</td>
                         </tr>`
                         newRows += newRow
                     }
                     document.getElementById('leaseTableContent').innerHTML = newRows
+                    messageBox.classList.add('hide')
+                    messageBox.innerText = ''
+                    
                 } else {
                     console.log(data)
                     messageBox.classList.remove('hide')
