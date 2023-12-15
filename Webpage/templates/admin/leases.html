@@ -114,9 +114,9 @@
                             <td>Listed Tenants</td>
                             <td>Monthly Rent</td>
                             <td>Monthly Fee(s)</td>
-                            <td>Contract Length</td>
+                            <td>Contract Type</td>
                             <td>Move-In Date</td>
-                            <td>Contract End</td>
+                            <td>Current Contract End</td>
                         </tr>
                     </thead>
                     <tbody id="leaseTableContent">
@@ -203,49 +203,102 @@
                     <div class="container-fluid leaseData">
                         <form action="" name="newLeaseForm" id="newLeaseForm">
                             <div class="row">
-                                <div class="col-md-4">
-                                    {{ form.firstName(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.firstName.label(class="inputLabel") }}
-                                </div>
-                                <div class="col-md-4">
-                                    {{ form.middleName(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.middleName.label(class="inputLabel") }}
-                                </div>
-                                <div class="col-md-4">
-                                    {{ form.lastName(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.lastName.label(class="inputLabel") }}
+                                <div class="col">
+                                    {{ form.property(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.property.label(class="inputLabel") }}
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col">
-                                    {{ form.emailAddress(class="inputField", onfocusout="ValidateEmail(this)") }}
-                                    {{ form.emailAddress.label(class="inputLabel") }}
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    {{ form.phoneNumber(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.phoneNumber.label(class="inputLabel") }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ form.cellPhoneNumber(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.cellPhoneNumber.label(class="inputLabel") }}
+                                    {{ form.tenant(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.tenant.label(class="inputLabel") }}
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-3">
-                                    {{ form.DOB(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.DOB.label(class="inputLabel") }}
+                                    {{ form.availableDate(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.availableDate.label(class="inputLabel") }}
                                 </div>
-                                <div class="col-md-9">
-                                    {{ form.cars(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.cars.label(class="inputLabel") }}
+                                <div class="col-md-1">
+                                    
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.moveInDate(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.moveInDate.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-1">
+                                    
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.terminateDate(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.terminateDate.label(class="inputLabel") }}
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col">
-                                    {{ form.comments(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.comments.label(class="inputLabel") }}
+                                    {{ form.leaseStatus(class="inputField", onfocusout="ValidateEmail(this)") }}
+                                    {{ form.leaseStatus.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-5">
+                                    {{ form.leaseOccurrence(class="inputField", onfocusout="ValidateEmail(this)") }}
+                                    {{ form.leaseOccurrence.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-2">
+                                    <p></p>
+                                </div>
+                                <div class="col-md-5">
+                                    {{ form.leaseSuccessionOccurrence(class="inputField", onfocusout="ValidateEmail(this)") }}
+                                    {{ form.leaseSuccessionOccurrence.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-5">
+                                    {{ form.monthlyRent(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.monthlyRent.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-2">
+                                </div>
+                                <div class="col-md-5">
+                                    {{ form.securityDeposit(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.securityDeposit.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-1">
+                                    <label class="inputLabel" for="feeTable">Fee Schedule</label>
+                                    <div><i class="fa-solid fa-circle-plus" id="addFeeButton" onclick = addFee()></i></div>
+                                    <div><i class="fa-solid fa-circle-minus" id="removeFeeButton" onclick = removeLastFee()></i></div>
+                                </div>
+                                <div class="col-md-11">
+                                    <div class="container table-responsive-md" id="render_feeTable">
+                        
+                                        <table class="table table-striped table-hover feeTable">
+                                            <thead>
+                                                <tr class="TitleRow">
+                                                    <td diaplay:none class="hide">leaseFeeID</td>
+                                                    <td>Fee Item</td>
+                                                    <td>Amount</td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                    <td></td>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="feeTableContent">
+                                                <tr>
+                                                    <td diaplay:none class="hide"></td>
+                                                    <td>{{ form.feeName(class="inputField", onfocusout="validate(this)") }}</td>
+                                                    <td>{{ form.feeAmount(class="inputField", onfocusout="validate(this)") }}</td>
+                                                    <td>{{ form.feeOccurrence(class="inputField", onfocusout="validate(this)") }}</td>
+                                                    <td style="border-bottom:none;"> beginning after </td>
+                                                    <td>{{ form.startAfterLength(class="inputField", onfocusout="validate(this)") }}</td>
+                                                    <td>{{ form.startAfterOccurrence(class="inputField", onfocusout="validate(this)") }}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </form>
@@ -269,6 +322,99 @@
         
         <script type="text/javascript">
             
+            window.onload = function() {
+                loadModalOptions();
+            }
+            
+            async function loadModalOptions() {
+                // 1. get the data from the API service
+                const response = await fetch(`http://api.hartzlerhome.solutions/leaseOptions?sessionID=${document.cookie.split('=')[1]}`);
+                const data = await response.json()
+                console.log(data)
+
+                // 2. add the data as options in the correct select boxes
+                if (data.status == 200) {
+                    // 2.1 populate the property select boxes
+                    let propertySelect = document.getElementById('property');
+                    for (let propertyData of data.properties) {
+                        // create new option
+                        let option = document.createElement("option");
+                        option.value = propertyData.propertyID;
+                        option.innerText = `${propertyData.nickname} - ${propertyData.address}`;
+                        propertySelect.appendChild(option);
+                    };
+
+                    // 2.2 populate the tenant select boxes
+                    let tenantSelect = document.getElementById('tenant');
+                    for (let tenantData of data.people) {
+                        // create new option
+                        let option = document.createElement("option");
+                        option.value = tenantData.personID;
+                        option.innerText = `${tenantData.name} - ${tenantData.emailAddress}`; 
+                        tenantSelect.appendChild(option);
+                    };
+
+                    // 2.2 populate the tenant select boxes
+                    let leaseOccurrenceSelect = document.getElementById('leaseOccurrence');
+                    for (let leaseOccurrenceData of data.occurrences) {
+                        // create new option
+                        let option = document.createElement("option");
+                        option.value = leaseOccurrenceData.occurrenceID;
+                        option.innerText = leaseOccurrenceData.name; 
+                        leaseOccurrenceSelect.appendChild(option);
+                    };
+
+                    return;
+                };
+                
+                console.log(data);
+                document.getElementById('newLeaseButton').disabled = True;
+            };
+            function addFee() {
+                let feeTable = document.getElementById('feeTableContent');
+                
+                // create row
+                let row = document.createElement("tr");
+
+                // create new cells
+                let c1 = document.createElement('td');
+                let c2 = document.createElement('td');
+                let c3 = document.createElement('td');
+                let c4 = document.createElement('td');
+                let c5 = document.createElement('td');
+                let c6 = document.createElement('td');
+                let c7 = document.createElement('td');
+                
+                c1.style = `display:none`;
+                c2.innerHTML = `{{ form.feeName(class="inputField", onfocusout="validate(this)") }}`;
+                c3.innerHTML = `{{ form.feeAmount(class="inputField", onfocusout="validate(this)") }}`;
+                c4.innerHTML = `{{ form.feeOccurrence(class="inputField", onfocusout="validate(this)") }}`;
+                c5.innerText = ` beginning after `;
+                c5.style = `border-bottom:none;`;
+                c6.innerHTML = `{{ form.startAfterLength(class="inputField", onfocusout="validate(this)") }}`;
+                c7.innerHTML = `{{ form.startAfterOccurrence(class="inputField", onfocusout="validate(this)") }}`;
+                
+                row.appendChild(c1);
+                row.appendChild(c2);
+                row.appendChild(c3);
+                row.appendChild(c4);
+                row.appendChild(c5);
+                row.appendChild(c6);
+                row.appendChild(c7);
+
+                feeTable.appendChild(row);
+                document.getElementById('removeFeeButton').classList.remove('hide')
+            }
+
+            function removeLastFee() {
+                const feeTable = document.getElementById('feeTableContent');
+                var rowCount = feeTable.rows.length;
+                if (rowCount <= 1) {
+                    document.getElementById('removeFeeButton').classList.add('hide');
+                };
+                feeTable.deleteRow(rowCount -1);
+            }
+
             function buildJsonData(form) {
                 const jsonData = {};
                 // const addressInfo = ['houseNumber', 'streetName','city','state','zipCode','apptNo']

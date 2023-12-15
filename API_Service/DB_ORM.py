@@ -47,7 +47,7 @@ class occurrence(db.Model):
     # Done
     __tablename__ = 'appOccurrences'
     occurrenceID =  db.Column(db.Integer, primary_key=True, nullable = False)
-    occurrenceNum = db.Column(db.Integer, nullable = False)
+    occurrence = db.Column(db.Integer, nullable = False)
     perPeriod =     db.Column(db.Integer, db.ForeignKey('appPeriods.periodID'), nullable = True)
 
     # occurrenceOfLeasePayments = db.relationship('lease', back_populates = 'paymentOccurrence')           #done
@@ -57,7 +57,7 @@ class occurrence(db.Model):
     occurrencePeriod = db.relationship('period', back_populates='periodOccurrences')        #done
 
     def __repr__(self) -> str:
-        return "<occurrence(occurrenceID = '%s', Occurrence = '%s'/'%s')>" %(self.occurrenceID, self.occurrenceNum, self.perPeriod)
+        return "<occurrence(occurrenceID = '%s', Occurrence = '%s'/'%s')>" %(self.occurrenceID, self.occurrence, self.perPeriod)
 
 class paymentMethod(db.Model):
     # This is the database relationship object for records in the appPaymentMethods table
@@ -152,7 +152,10 @@ class address(db.Model):
     # previousApplicantAddress = db.relationship('application', back_populates='previousApplicantDetailedAddress')  #missing - STRETCH
 
     def getHouseNStreet(self) -> str:
-        return '%s %s %s'%(self.houseNumber, self.streetName, self.apptNo)
+        if self.apptNo:
+            return '%s %s Apt. %s'%(self.houseNumber, self.streetName, self.apptNo)
+        else:
+            return '%s %s'%(self.houseNumber, self.streetName)
     
     def __repr__(self) -> str:
         return "<address(addressID = '%r', address = '%s %s %s, %s, %s %s')>" %(self.addressID, self.houseNumber, self.streetName, self.apptNo, self.city, self.state, self.zipCode)

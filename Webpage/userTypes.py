@@ -1,11 +1,9 @@
-# from app import Users, BlogPost, Session
-from DB_Object_Creator import db, userAccount, userSession, webSession, person
 from datetime import date, datetime
 from flask import request, make_response, render_template
 import requests, json
 
 
-from wtforms import Form, BooleanField, StringField, validators, DateField, IntegerField, DecimalField, PasswordField
+from wtforms import Form, SelectField, StringField, validators, DateField, IntegerField, DecimalField, PasswordField
 
 def roundToHalf(value):
     value = value-0.5
@@ -34,6 +32,35 @@ class newUserForm(Form):
 
 
 
+class newLeaseForm(Form):
+
+    # def __init__(self, sessionID:str, formdata: _MultiDictLike | None = None, obj: object | None = None, prefix: str = "", data: Mapping[str, Any] | None = None, meta: Mapping[str, Any] | None = None, *, extra_filters: Mapping[str, Sequence[Any]] | None = None, **kwargs: object) -> None:
+    #     super().__init__(formdata, obj, prefix, data, meta, extra_filters=extra_filters, **kwargs)
+    
+    # # 1: Get the comboBox Option data from the API
+    # print (args['sessionID'])
+
+    # 2: setup the comboBoxes
+    property= SelectField('Property*',[validators.DataRequired(), validators.Length(max=50)])
+    tenant= SelectField('Tenant(s) on lease*', [validators.DataRequired()])
+    
+    availableDate= DateField('Avail. Date*', [validators.DataRequired()])
+    moveInDate= DateField('Move-in Date')
+    terminateDate= DateField('Termination Date')
+    
+    leaseStatus= StringField('Lease Status*', [validators.DataRequired()])
+    
+    leaseOccurrence= SelectField('Lease Term*', [validators.DataRequired()])
+    leaseSuccessionOccurrence= SelectField('Auto-Renewal Term After Initial Term*', [validators.DataRequired()])
+    monthlyRent= IntegerField('Monthly Rent*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
+    securityDeposit= IntegerField('Security Deposit*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
+
+    feeName= SelectField('fee Name*', [validators.DataRequired()])
+    feeAmount = IntegerField('fee Amount*', [validators.DataRequired(), validators.Regexp('[0-9.]+'), validators.NumberRange(min=0)])
+    feeOccurrence = SelectField('fee Occurrence*', [validators.DataRequired()])
+    startAfterLength = IntegerField('Fee Begins After Amount*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
+    startAfterOccurrence = SelectField('Fee Begins After Period*', [validators.DataRequired()])
+    
 class newPropertyForm(Form):
     nickname= StringField('Nickname*', [validators.DataRequired(), validators.Length(max=50)])
     houseNumber= IntegerField('House No.*', [validators.DataRequired()])
@@ -226,21 +253,32 @@ class User:
             sessionID = responseData['sessionID']
             self = UserMaker().MakeUser(userType=userType, sessionID= sessionID)
             print ("This is me:", self)
+        
+        
         return self
     
     def Logout(self):
         # Already logged out, so nothing needs done.
         print ("I'm HERE")
-        self = UserMaker().MakeUser()
-        return self
+        newUser = UserMaker().MakeUser()
+        resp = make_response(render_template('logout.html', headerData = newUser.headerContents))
+        resp.set_cookie('sessionID','', expires = 0)
+        return resp
 
     def newLandlord(self, requestInfo):
         return _newLandlord(requestInfo)
 
+    def getHomePage(self, sessionInfo):
+        return render_template('')
+    
     def getNewLandlordPage(self, sessionInfo):
         form = newUserForm(request.form)
         return render_template('newUser.html', headerData = self.headerContents, form=form)
 
+    def getRentPage(self, sessionInfo):
+        resp = make_response(render_template('unauthorized.html', headerData = self.headerContents, loggedOut = self.userSession==None))
+        return resp
+    
     def getLeasesPage(self, sessionInfo):
         resp = make_response(render_template('unauthorized.html', headerData = self.headerContents, loggedOut = self.userSession==None))
         return resp
@@ -271,6 +309,8 @@ class LoggedOutUser(User):
         self.userAccount = None
         self.headerContents = [{'name': "Home", 'link': "/", 'pageID': "index"}, {'name': "Login", 'link': "/login", 'pageID': "login"}]
     
+    # getRentPage()    -> parent definition
+    # getLeasePage()   -> parent definition
     # getPeoplePage()   -> parent definition
     # saveLease()       -> parent definition
     # savePerson()      -> parent definition
@@ -283,11 +323,19 @@ class LoggedOutUser(User):
 class TenantUser(User):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.headerContents = [ {'name': "Rent",            'link': "/rent",                           'pageID': "rent"}, \
-                                {'name': "Documents",       'link': "/solutions",                      'pageID': "solutions"}, \
+        self.headerContents = [ {'name': "Rent",            'link': "/rent",                       'pageID': "rent"}, \
+                                {'name': "Documents",       'link': "/leases",                     'pageID': "solutions"}, \
                                 # {'name': "Maintenance",     'link': "../product_reviews/index.html",    'pageID': "reviews"}, \
                                 {'name': "Logout",          'link': "/logout",                     'pageID': "logout"}]
 
+    def getRentPage(self, sessionInfo):
+        resp = make_response(render_template('underConstruction.html', headerData = self.headerContents))
+        return resp
+
+    def getLeasesPage(self, sessionInfo):
+        resp = make_response(render_template('underConstruction.html', headerData = self.headerContents))
+        return resp
+    
     # getPeoplePage() -> parent definition
 
     def savePerson(self, requestInfo):
@@ -306,9 +354,13 @@ class Property_Manager_User(User):
                                 {'name': "Properties",      'link': "/properties",      'pageID': "properties"}, \
                                 # {'name': "Maintenance",     'link': "/maintenance",     'pageID': "maintenance"}, \
                                 {'name': "Logout",          'link': "/logout",          'pageID': "logout"}]
-        
+    def getRentPage(self, sessionInfo):
+        monthlist = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        rentRollList = []
+        return render_template('admin/rent_roll.html', headerData = self.headerContents, rentRollList = rentRollList, monthlist=monthlist)
+
     def getLeasesPage(self, sessionInfo):
-        form = newTenantUserForm(request.form)
+        form = newLeaseForm(request.form, sessionID = self.userSession)
         resp = make_response(render_template('admin/leases.html', headerData = self.headerContents, form=form))
         return resp
     
@@ -341,7 +393,11 @@ class AdminUser(User):
                                 # {'name': "Maintenance",     'link': "/maintenance",     'pageID': "maintenance"}, \
                                 {'name': "Logout",          'link': "/logout",          'pageID': "logout"}]
         
-
+    def getLeasesPage(self, sessionInfo):
+        form = newLeaseForm(request.form, sessionID = self.userSession)
+        resp = make_response(render_template('admin/leases.html', headerData = self.headerContents, form=form))
+        return resp
+    
     def getPeoplePage(self, sessionInfo):
         form = newTenantUserForm(request.form)
         resp = make_response(render_template('admin/people.html', headerData = self.headerContents, form=form))

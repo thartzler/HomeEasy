@@ -157,7 +157,7 @@ CREATE TABLE [dbo].[userEmploymentHistory] (
     CONSTRAINT [PK_userEmploymentHistory] PRIMARY KEY CLUSTERED ([employmentID] ASC)
 );
 
-CREATE TABLE [dbo].[userLease] (
+CREATE TABLE [dbo].[userLeases] (
     [leaseID]                   INT          NOT NULL,
     [propertyID]                INT          NOT NULL,
     [leaseStatus]               VARCHAR (25) NULL,
@@ -310,7 +310,7 @@ ALTER TABLE [dbo].[userAccounts](
 ALTER TABLE [dbo].[userApplications] (
     CONSTRAINT [FK_userApplications_userAddresses-currentAddress] FOREIGN KEY ([currentAddressID]) REFERENCES [dbo].[userAddresses] ([addressID]),
     CONSTRAINT [FK_userApplications_userApplications-previousAddress] FOREIGN KEY ([previousAddressID]) REFERENCES [dbo].[userAddresses] ([addressID]),
-    CONSTRAINT [FK_userApplications_userLease] FOREIGN KEY ([leaseID]) REFERENCES [dbo].[userLease] ([leaseID]),
+    CONSTRAINT [FK_userApplications_userLease] FOREIGN KEY ([leaseID]) REFERENCES [dbo].[userLeases] ([leaseID]),
     CONSTRAINT [FK_userApplications_userPeople-applicant] FOREIGN KEY ([applicantID]) REFERENCES [dbo].[userPeople] ([personID]),
     CONSTRAINT [FK_userApplications_userPeople-coapplicant] FOREIGN KEY ([coApplicantID]) REFERENCES [dbo].[userPeople] ([personID]),
     CONSTRAINT [FK_userApplications_userPeople-currentOwner] FOREIGN KEY ([currentOwnerID]) REFERENCES [dbo].[userPeople] ([personID]),
@@ -332,7 +332,7 @@ ALTER TABLE [dbo].[userCompanyRoles] (
 
 ALTER TABLE [dbo].[userDependants] (
     CONSTRAINT [FK_userDependants_userApplications] FOREIGN KEY ([applicationID]) REFERENCES [dbo].[userApplications] ([applicationID]),
-    CONSTRAINT [FK_userDependants_userLease] FOREIGN KEY ([leaseID]) REFERENCES [dbo].[userLease] ([leaseID])
+    CONSTRAINT [FK_userDependants_userLease] FOREIGN KEY ([leaseID]) REFERENCES [dbo].[userLeases] ([leaseID])
 );
 
 ALTER TABLE [dbo].[userEmploymentHistory] (
@@ -342,7 +342,7 @@ ALTER TABLE [dbo].[userEmploymentHistory] (
     CONSTRAINT [FK_userEmploymentHistory_userApplications] FOREIGN KEY ([applicationID]) REFERENCES [dbo].[userApplications] ([applicationID])
 );
 
-ALTER TABLE [dbo].[userLease] (
+ALTER TABLE [dbo].[userLeases] (
     CONSTRAINT [FK_userLease_appOccurrences] FOREIGN KEY ([leaseOccurrence]) REFERENCES [dbo].[appOccurrences] ([occurrenceID]),
     CONSTRAINT [FK_userLease_appOccurrences_leaseSuccession] FOREIGN KEY ([leaseSuccessionOccurrence]) REFERENCES [dbo].[appOccurrences] ([occurrenceID]),
     CONSTRAINT [FK_userLease_userAccounts] FOREIGN KEY ([createUser]) REFERENCES [dbo].[userAccounts] ([userID]),
@@ -354,11 +354,11 @@ ALTER TABLE [dbo].[userLeaseFees] (
     CONSTRAINT [FK_userLeaseFees_appOccurrences] FOREIGN KEY ([occurrence]) REFERENCES [dbo].[appOccurrences] ([occurrenceID]),
     CONSTRAINT [FK_userLeaseFees_appPeriods] FOREIGN KEY ([startAfterPeriod]) REFERENCES [dbo].[appPeriods] ([periodID]),
     CONSTRAINT [FK_userLeaseFees_userAccounts] FOREIGN KEY ([createUser]) REFERENCES [dbo].[userAccounts] ([userID]),
-    CONSTRAINT [FK_userLeaseFees_userLease] FOREIGN KEY ([leaseID]) REFERENCES [dbo].[userLease] ([leaseID])
+    CONSTRAINT [FK_userLeaseFees_userLease] FOREIGN KEY ([leaseID]) REFERENCES [dbo].[userLeases] ([leaseID])
 );
 
 ALTER TABLE [dbo].[userLeasePeople] (
-    CONSTRAINT [FK_userLeasePeople_userLease] FOREIGN KEY ([leaseID]) REFERENCES [dbo].[userLease] ([leaseID]),
+    CONSTRAINT [FK_userLeasePeople_userLease] FOREIGN KEY ([leaseID]) REFERENCES [dbo].[userLeases] ([leaseID]),
     CONSTRAINT [FK_userLeasePeople_userPeople] FOREIGN KEY ([personID]) REFERENCES [dbo].[userPeople] ([personID])
 );
 

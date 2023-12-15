@@ -4,19 +4,12 @@ import json
 from datetime import datetime, timedelta
 import secrets
 from userTypes import getUser, TenantUser, Property_Manager_User, AdminUser,LoggedOutUser
-from DB_Object_Creator import db, Department, webSession, property
 
 # from SessionStates import LoggedInState, LoggedOutState
 
 
 
 app = Flask(__name__)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///HHS.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db.init_app(app)
-
 
 
 def getCurrentUser(req: request):
@@ -27,9 +20,6 @@ def getCurrentUser(req: request):
             return getUser(sessionID = sessionID, ipAddress = ipAddress)
     return getUser()
 
-# current_member = getCurrentUser(request)
-
-# current_state = LoggedOutState()
 
 @app.route('/')
 def index():
@@ -68,38 +58,33 @@ def newUserPage():
         return current_member.getNewLandlordPage(request)
     else:
         resp = current_member.newLandlord(request)
+        print (resp)
         return resp, resp['status']
 
 @app.route('/logout')
 def logoutPage():
-    
     current_member = getCurrentUser(request)
-    current_member = current_member.Logout()
-    resp = make_response(render_template('logout.html', headerData = current_member.headerContents))
-    resp.set_cookie('sessionID','', expires = 0)
-    return resp
+    return current_member.Logout()
 
 @app.route('/rent')
 def rent_roll():
     current_member = getCurrentUser(request)
-    print ('currentMember: ', current_member)
-    userType = type(current_member)
-    print ("userType: ", userType)
-    if userType == TenantUser:
-        return render_template('unauthorized.html', headerData = current_member.headerContents, loggedOut = True)
-    elif userType in [Property_Manager_User, AdminUser]:
-        rentRollList = property.query.all()
-        monthlist = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        rentRollList = []
-        return render_template('admin/rent_roll.html', headerData = current_member.headerContents, rentRollList = rentRollList, monthlist=monthlist)
+    if request.method == 'GET':
+        return current_member.getRentPage(request)
     else:
-        
-        return render_template('unauthorized.html', headerData = current_member.headerContents, loggedOut = True)
+        resp = current_member.saveRentPayment(request)
+        print (resp)
+        return resp, resp['status']
     
 @app.route('/leases')
 def leases():
     current_member = getCurrentUser(request)
-    return current_member.getLeasesPage(request)
+    if request.method == 'GET':
+        return current_member.getLeasesPage(request)
+    else:
+        resp = current_member.saveLease(request)
+        print (resp)
+        return resp, resp['status']
 
 @app.route('/people', methods = ['GET', 'POST'])
 def people():

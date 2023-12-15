@@ -593,6 +593,111 @@ class adminLeases(Resource):
 
 
 
+class leaseOptions(Resource):
+
+    def get(self):
+        # 'GET' request comes directly from the webpage on a client's browser for creating leases.
+        if 'sessionID' in request.args:
+            ipAddress = request.remote_addr
+            isValid, sessionOrComment = isSessionValid(request.args['sessionID'], ipAddress=ipAddress)
+            if isValid:
+                sessn = sessionOrComment
+                accntType = sessn.sessionUser.accountAuthority.typeName
+
+                # print(sessn.sessionUser.accountAuthority.typeName)
+                if accntType in ['landlord'] or 'admin' in accntType.lower():
+                    #Now check if the person is authorized
+                    cRP = sessn.sessionUser.companyRolePerson
+                    if len(cRP) >0:
+                        returnData = {'status': 200, 
+                                      'people': [], #[{'personID': int, 'name': str, 'emailAddress': str}], 
+                                      'properties': [], #[{'propertyID': int, 'nickname': str, 'address': str}], 
+                                      'feeTypes':[], #[{'feeID': int, 'name': str = 'Pet Fee', 'description': str, 'defaultPrice': int, 'defaultOccurrence': int = occurrenceID}], 
+                                      'occurrences':[],#[{'occurrenceID': int, 'name': str = '/day'}], 
+                                      'periods':[]#[{'periodID': int, 'name': str = 'day'}], 
+                                      }
+                        people = [] # {"personID":"", "name":""}
+                        cmpny = cRP[0].associatedCompany
+                        print ("company(s): ", cmpny)
+
+                        # Find a list of landlord users for the company who can make people
+                        companyUsers = companyRole.query.filter_by(companyID = cmpny.companyID).all()
+                        for companyUser in companyUsers:
+                            # get a list of the people created by the company's landlord users
+                            peopleCreatedByUserWOLease = personDetail.query.filter_by(setPersonID = companyUser.userID).join(personDetail.associatedDetail).filter_by(propertyName='creator').filter(~ exists().where(leasePerson.personID==personDetail.personID)).all()
+                            for personCreatedByUser in peopleCreatedByUserWOLease:
+                                # print ("personCreatedByUser: ", personCreatedByUser)
+                                people.append(personCreatedByUser.associatedPerson)
+                        print ("PeopleList: ", people)
+                        # Now get a list the people details
+                        for person_i in people:
+                            # Now build return data
+                            addedDetails = {}
+                            # print("RElated Person: ", person_i)
+                            # print("RElated PersonDetails: ", person_i.relatedPersonDetails)
+                            for additionalDetail in person_i.relatedPersonDetails:
+                                if additionalDetail.associatedDetail.propertyName != 'creator':
+                                    addedDetails[additionalDetail.associatedDetail.propertyName] = additionalDetail.propertyValue
+                            data = {
+                                'personID':     person_i.personID,
+                                'name':    person_i.firstName + " " + addedDetails['middleName'][0] + ". " + person_i.lastName,
+                                'emailAddress': person_i.personsAccount[0].emailAddress,
+                            }
+                            returnData['people'].append(data)
+                        
+                        # Get the list of properties without active leases
+                        unrentedProperties = property.query.filter_by(companyID = cmpny.companyID).join(property.propertyLease, isouter=True).filter(lease.terminationDate == None).all()
+                        for unrentedProperty in unrentedProperties:
+                            data = {
+                                'propertyID': unrentedProperty.propertyID,
+                                'nickname': unrentedProperty.nickname,
+                                'address': unrentedProperty.fullAddress.getHouseNStreet()
+                            }
+                            returnData['properties'].append(data)
+
+                        appFeeTypes = feeType.query.filter_by().all()
+                        for appFeeType in appFeeTypes:
+                            data = {
+                                'feeID': appFeeType.feeID, 
+                                'name': appFeeType.feeName,
+                                'description': appFeeType.description,
+                                'defaultPrice': float(appFeeType.defaultPrice),
+                                'defaultOccurrenceID': appFeeType.defaultOccurrence
+                                }
+                            returnData['feeTypes'].append(data)
+
+                        appOccurrences = occurrence.query.filter_by().all()
+                        for appOccurrence in appOccurrences:
+                            if appOccurrence.occurrence == 1:
+                                occurrName = """/{}""".format(appOccurrence.occurrencePeriod.abbreviation)
+                            else:
+                                occurrName = """{}/{}""".format(appOccurrence.occurrence,appOccurrence.occurrencePeriod.abbreviation)
+
+                            data = {
+                                'occurrenceID': appOccurrence.occurrenceID, 
+                                'name': occurrName,
+                                }
+                            returnData['occurrences'].append(data) 
+
+                        appPeriods = period.query.filter_by().all()
+                        for appPeriod in appPeriods:
+                            data = {
+                                'periodID': appPeriod.periodID, 
+                                'name': appPeriod.name,
+                                }
+                            returnData['periods'].append(data) 
+
+                        return returnData, returnData['status']
+                    else:
+                        sessionOrComment = "Error with your account"
+                else:
+                    sessionOrComment = "Insufficient Authority to view this data"
+            return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
+        else:
+            return {'status': 401, 'message': 'Unauthorized: You must be logged in to view this request'}, 401
+
+
+
 class adminPeople(Resource):
 
     def get(self):
@@ -721,63 +826,6 @@ class adminPeople(Resource):
             else:
                 return {'status': 403, 'message': 'Forbidden: Insufficient authority to add a property'}, 403
         return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
-
-
-class unrentedPeople(Resource):
-
-    def get(self):
-        # 'GET' request comes directly from the webpage on a client's browser for creating leases.
-        if 'sessionID' in request.args:
-            ipAddress = request.remote_addr
-            isValid, sessionOrComment = isSessionValid(request.args['sessionID'], ipAddress=ipAddress)
-            if isValid:
-                sessn = sessionOrComment
-                accntType = sessn.sessionUser.accountAuthority.typeName
-
-                # print(sessn.sessionUser.accountAuthority.typeName)
-                if accntType in ['landlord'] or 'admin' in accntType.lower():
-                    #Now check if the person is authorized
-                    cRP = sessn.sessionUser.companyRolePerson
-                    if len(cRP) >0:
-                        people = []
-                        cmpny = cRP[0].associatedCompany
-                        print ("company(s): ", cmpny)
-
-                        # Find a list of landlord users for the company who can make people
-                        companyUsers = companyRole.query.filter_by(companyID = cmpny.companyID).all()
-                        for companyUser in companyUsers:
-                            # get a list of the people created by the company's landlord users
-                            peopleCreatedByUserWOLease = personDetail.query.filter_by(setPersonID = companyUser.userID).join(personDetail.associatedDetail).filter_by(propertyName='creator').filter(~ exists().where(leasePerson.personID==personDetail.personID)).all()
-                            for personCreatedByUser in peopleCreatedByUserWOLease:
-                                # print ("personCreatedByUser: ", personCreatedByUser)
-                                people.append(personCreatedByUser.associatedPerson)
-                        print ("PeopleList: ", people)
-                        # Now get a list the people details
-                        returnData = {'status': 200, 'people': []}
-                        for person_i in people:
-                            # Now build return data
-                            addedDetails = {}
-                            # print("RElated Person: ", person_i)
-                            # print("RElated PersonDetails: ", person_i.relatedPersonDetails)
-                            for additionalDetail in person_i.relatedPersonDetails:
-                                if additionalDetail.associatedDetail.propertyName != 'creator':
-                                    addedDetails[additionalDetail.associatedDetail.propertyName] = additionalDetail.propertyValue
-                            data = {
-                                'personID':     person_i.personID,
-                                'name':    person_i.firstName + " " + addedDetails['middleName'][0] + ". " + person_i.lastName,
-                                'emailAddress': person_i.personsAccount[0].emailAddress,
-                            }
-                            
-                            returnData['people'].append(data)
-                        
-                        return returnData, returnData['status']
-                    else:
-                        sessionOrComment = "Error with your account"
-                else:
-                    sessionOrComment = "Insufficient Authority to view this data"
-            return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
-        else:
-            return {'status': 401, 'message': 'Unauthorized: You must be logged in to view this request'}, 401
 
 
 
@@ -914,11 +962,11 @@ api.add_resource(getRentRoll, '/admin/rent/roll')
 
 # Leases Page
 api.add_resource(adminLeases, '/admin/leases')
+api.add_resource(leaseOptions, '/leaseOptions')
 
 
 # People
 api.add_resource(adminPeople, '/admin/people')
-api.add_resource(unrentedPeople, '/unrentedPeople')
 
 
 # Properties Page
