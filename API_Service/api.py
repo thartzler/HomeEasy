@@ -1,12 +1,9 @@
 from flask import Flask, jsonify, render_template, url_for, request, redirect
 from flask_restful import Api, Resource
-from azure import identity
-import pyodbc, struct, os
-import json, codecs
+import os
 import secrets
 import bcrypt
 import urllib.parse
-# from wtforms import Form, BooleanField, StringField, PasswordField, validators
 
 from datetime import datetime, timedelta
 from DB_ORM import *#db, userSession, webSession, property
@@ -316,7 +313,7 @@ def getUserFromSessionID(requestHeader, ipAddress = None):
                 "message": "Unauthorized: You must be logged in to view this request"}
 
 
-connection_string = os.environ["AZURE_SQL_CONNECTIONSTRING"]
+# connection_string = os.environ["AZURE_SQL_CONNECTIONSTRING"]
 
 # Configure Database URI:
 params = urllib.parse.quote_plus(os.environ["AZURE_SQL_CONNECTIONSTRING"])
@@ -386,6 +383,11 @@ class registerNewUser(Resource):
         # Must be sent through function on the webpage (can't be directly submitted)
         # FUTURE: SEND THROUGH WEBSITE TO PREVENT PUT REQUESTS BEING SENT ACROSS SERVER ADDRESSES
         # https://dev.to/amjadmh73/submit-html-forms-to-json-apis-easily-137l
+
+        # 'POST' request comes from the HomeEasy webserver (form post gets processed on the webserver and requests the API to save the data).
+        if request.remote_addr != '20.228.226.251' and request.remote_addr != '127.0.0.1' and request.remote_addr != '24.101.69.174':
+            return {'status': 403, 'message': 'Forbidden: You cannot view this request'}, 403
+
         accountJsonData = {}
         requiredItems = ['address','firstName', 'lastName', 'phoneNumber', 'emailAddress', 'password','companyName', 'companyPhone']
         addressRequirements = ['houseNumber', 'streetName','city','state','zipCode']
@@ -407,15 +409,16 @@ class registerNewUser(Resource):
             
         if len(requiredItems) >=1:
             return {'status': 400, 'message': "Missing necessary information to create a new user", "missingField(s)": requiredItems}, 400
+        print("Request: ", request)
         similarUsers = userAccount.query.filter_by(emailAddress = accountJsonData['emailAddress']).all()
-        if similarUsers:
+        if len(similarUsers)>=1:
             return {'status': 403, 'message': "This username already exists: '%s'"%str(accountJsonData['emailAddress'])}, 403
         wasCreated, result = newLandlordAccount(accountJsonData)
         if wasCreated:
             return {'status': 201, 'message':'Success: User account has been created!','userID':str(result.userID)}, 201#,'redirectURL':'./home'}
         else:
             print ( dir(result))
-            return {'status': 400, 'message':'Failed to save','error':str(result),'traceback':result.args,'redirectURL':'#'}
+            return {'status': 400, 'message':'Failed to save','error':str(result),'traceback':result.args,'redirectURL':'#'}, 400
 
 class rentRoll(Resource):
 
