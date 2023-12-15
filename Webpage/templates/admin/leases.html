@@ -90,7 +90,7 @@
                     return;
                 }
             }
-            document.getElementById("submitButton").disabled=false
+            document.getElementById("submitButton").disabled = false;
         }
     </script>
 
@@ -141,9 +141,9 @@
         <script type="text/javascript">
             // takes care of loading the data and creating/populating the table
             
-            window.onload = function() {
-                loadTable();
-            }
+            // window.onload = function() {
+            //     loadTable();
+            // }
             async function loadTable () {
                 const messageBox = document.getElementById('userMessage');
                 const loadingSpinner = document.getElementById('tableLoadingSpinner');
@@ -236,20 +236,20 @@
                             </div>
                             <div class="row">
                                 <div class="col">
-                                    {{ form.leaseStatus(class="inputField", onfocusout="ValidateEmail(this)") }}
+                                    {{ form.leaseStatus(class="inputField", onfocusout="validate(this)") }}
                                     {{ form.leaseStatus.label(class="inputLabel") }}
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-5">
-                                    {{ form.leaseOccurrence(class="inputField", onfocusout="ValidateEmail(this)") }}
+                                    {{ form.leaseOccurrence(class="inputField", onfocusout="validate(this)") }}
                                     {{ form.leaseOccurrence.label(class="inputLabel") }}
                                 </div>
                                 <div class="col-md-2">
                                     <p></p>
                                 </div>
                                 <div class="col-md-5">
-                                    {{ form.leaseSuccessionOccurrence(class="inputField", onfocusout="ValidateEmail(this)") }}
+                                    {{ form.leaseSuccessionOccurrence(class="inputField", onfocusout="validate(this)") }}
                                     {{ form.leaseSuccessionOccurrence.label(class="inputLabel") }}
                                 </div>
                             </div>
@@ -323,6 +323,7 @@
         <script type="text/javascript">
             
             window.onload = function() {
+                loadTable();
                 loadModalOptions();
             }
             
@@ -336,6 +337,7 @@
                 if (data.status == 200) {
                     // 2.1 populate the property select boxes
                     let propertySelect = document.getElementById('property');
+                    propertySelect.appendChild(document.createElement("option"));
                     for (let propertyData of data.properties) {
                         // create new option
                         let option = document.createElement("option");
@@ -346,6 +348,7 @@
 
                     // 2.2 populate the tenant select boxes
                     let tenantSelect = document.getElementById('tenant');
+                    tenantSelect.appendChild(document.createElement("option"));
                     for (let tenantData of data.people) {
                         // create new option
                         let option = document.createElement("option");
@@ -354,21 +357,57 @@
                         tenantSelect.appendChild(option);
                     };
 
-                    // 2.2 populate the tenant select boxes
-                    let leaseOccurrenceSelect = document.getElementById('leaseOccurrence');
+                    // 2.3 populate the feeOccurrence boxes
+                    let feeOccurrenceSelect = document.getElementById('feeOccurrence');
+                    feeOccurrenceSelect.appendChild(document.createElement("option"));
                     for (let leaseOccurrenceData of data.occurrences) {
                         // create new option
                         let option = document.createElement("option");
                         option.value = leaseOccurrenceData.occurrenceID;
                         option.innerText = leaseOccurrenceData.name; 
+                        feeOccurrenceSelect.appendChild(option);
+                    };
+                    
+                    // 2.4 populate the period boxes
+                    let leaseOccurrenceSelect = document.getElementById('leaseOccurrence');
+                    let leaseSuccessionOccurrenceSelect = document.getElementById('leaseSuccessionOccurrence');
+                    let startAfterOccurrenceSelect = document.getElementById('startAfterOccurrence');
+                    leaseOccurrenceSelect.appendChild(document.createElement("option"));
+                    leaseSuccessionOccurrenceSelect.appendChild(document.createElement("option"));
+                    startAfterOccurrenceSelect.appendChild(document.createElement("option"));
+                    for (let periodData of data.periods) {
+                        // create new option
+                        let option = document.createElement("option");
+                        let option2 = document.createElement("option");
+                        let option3 = document.createElement("option");
+                        option.value = periodData.periodID;
+                        option2.value = periodData.periodID;
+                        option3.value = periodData.periodID;
+                        option.innerText = periodData.name; 
+                        option2.innerText = periodData.name; 
+                        option3.innerText = periodData.name; 
                         leaseOccurrenceSelect.appendChild(option);
+                        leaseSuccessionOccurrenceSelect.appendChild(option2);
+                        startAfterOccurrenceSelect.appendChild(option3);
                     };
 
+                    // 2.5 populate the feeName boxe
+                    let feeNameSelect = document.getElementById('feeName');
+                    feeNameSelect.appendChild(document.createElement("option"));
+                    for (let feeTypesData of data.feeTypes) {
+                        // create new option
+                        let option = document.createElement("option");
+                        option.value = feeTypesData.feeID;
+                        option.innerText = feeTypesData.name;
+                        option.title = `Description: ${feeTypesData.description}\nDefault Price: ${feeTypesData.defaultPrice}`;
+                        feeNameSelect.appendChild(option);
+                    };
+                    document.getElementById('newLeaseButton').disabled = false;
                     return;
                 };
                 
                 console.log(data);
-                document.getElementById('newLeaseButton').disabled = True;
+                document.getElementById('newLeaseButton').disabled = true;
             };
             function addFee() {
                 let feeTable = document.getElementById('feeTableContent');
