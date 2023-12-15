@@ -154,7 +154,7 @@
                 messageBox.innerText = "Timeout: No response from content server"
 
                 setTimeout(() => loadingSpinner.classList.add("hide"), 20000)
-                setTimeout(() => messageBox.classList.remove("hide"), 20000)
+                let msgBoxTimeout = setTimeout(() => messageBox.classList.remove("hide"), 20000)
                 // 1. Get the data for the table
                 
                 const response = await fetch(`http://api.hartzlerhome.solutions/admin/leases?sessionID=${document.cookie.split('=')[1]}`);
@@ -167,7 +167,7 @@
                     for (let leaseData of data.leases) {
                         let newRow = `<tr>
                             <td diaplay:none class="hide">${leaseData.leaseID}</td>
-                            <td>${leaseData.nickname} ${leaseData.address}</td>
+                            <td><span style='font-size: 1.2rem;font-weight: 600;'>${leaseData.nickname}</span><br/>${leaseData.address}</td>
                             <td>${leaseData.tenants}</td>
                             <td>${leaseData.monthlyRent}</td>
                             <td>${leaseData.monthlyFees}</td>
@@ -178,7 +178,7 @@
                         newRows += newRow
                     }
                     document.getElementById('leaseTableContent').innerHTML = newRows
-                    messageBox.classList.add('hide')
+                    clearTimeout(msgBoxTimeout)
                     messageBox.innerText = ''
                     
                 } else {

@@ -4,6 +4,7 @@ import os
 import secrets
 import bcrypt
 import urllib.parse
+from sqlalchemy.sql import exists
 
 from datetime import datetime, timedelta
 from DB_ORM import *#db, userSession, webSession, property
@@ -464,7 +465,7 @@ class adminLeases(Resource):
     def get(self):
         # 'GET' request comes directly from the webpage on a client's browser.
         # print(request.args)
-        return {'status': 200, 'leases': {'leaseID': 4552, 'nickname': '1740','address': '1740 Eastern Road', 'tenants': 'Mark Fields & Jenna Walsch', 'monthlyRent': 650.00, 'monthlyFees': 'Pet: 15/mo<br/>Late: 5.00/day', 'leasePeriod':'1-Yr', 'moveInDate': '2022-06-01', 'endDate':'2023-12-31'}}
+        return {'status': 200, 'leases': [{'leaseID': 4552, 'nickname': '1740','address': '1740 Eastern Road', 'tenants': 'Mark Fields & Jenna Walsch', 'monthlyRent': 650.00, 'monthlyFees': 'Pet: 15/mo<br/>Late: 5.00/day', 'leasePeriod':'1-Yr', 'moveInDate': '2022-06-01', 'endDate':'2023-12-31'}]}
 
         if 'sessionID' in request.args:
             ipAddress = request.remote_addr
@@ -722,6 +723,64 @@ class adminPeople(Resource):
         return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
 
 
+class unrentedPeople(Resource):
+
+    def get(self):
+        # 'GET' request comes directly from the webpage on a client's browser for creating leases.
+        if 'sessionID' in request.args:
+            ipAddress = request.remote_addr
+            isValid, sessionOrComment = isSessionValid(request.args['sessionID'], ipAddress=ipAddress)
+            if isValid:
+                sessn = sessionOrComment
+                accntType = sessn.sessionUser.accountAuthority.typeName
+
+                # print(sessn.sessionUser.accountAuthority.typeName)
+                if accntType in ['landlord'] or 'admin' in accntType.lower():
+                    #Now check if the person is authorized
+                    cRP = sessn.sessionUser.companyRolePerson
+                    if len(cRP) >0:
+                        people = []
+                        cmpny = cRP[0].associatedCompany
+                        print ("company(s): ", cmpny)
+
+                        # Find a list of landlord users for the company who can make people
+                        companyUsers = companyRole.query.filter_by(companyID = cmpny.companyID).all()
+                        for companyUser in companyUsers:
+                            # get a list of the people created by the company's landlord users
+                            peopleCreatedByUserWOLease = personDetail.query.filter_by(setPersonID = companyUser.userID).join(personDetail.associatedDetail).filter_by(propertyName='creator').filter(~ exists().where(leasePerson.personID==personDetail.personID)).all()
+                            for personCreatedByUser in peopleCreatedByUserWOLease:
+                                # print ("personCreatedByUser: ", personCreatedByUser)
+                                people.append(personCreatedByUser.associatedPerson)
+                        print ("PeopleList: ", people)
+                        # Now get a list the people details
+                        returnData = {'status': 200, 'people': []}
+                        for person_i in people:
+                            # Now build return data
+                            addedDetails = {}
+                            # print("RElated Person: ", person_i)
+                            # print("RElated PersonDetails: ", person_i.relatedPersonDetails)
+                            for additionalDetail in person_i.relatedPersonDetails:
+                                if additionalDetail.associatedDetail.propertyName != 'creator':
+                                    addedDetails[additionalDetail.associatedDetail.propertyName] = additionalDetail.propertyValue
+                            data = {
+                                'personID':     person_i.personID,
+                                'name':    person_i.firstName + " " + addedDetails['middleName'][0] + ". " + person_i.lastName,
+                                'emailAddress': person_i.personsAccount[0].emailAddress,
+                            }
+                            
+                            returnData['people'].append(data)
+                        
+                        return returnData, returnData['status']
+                    else:
+                        sessionOrComment = "Error with your account"
+                else:
+                    sessionOrComment = "Insufficient Authority to view this data"
+            return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
+        else:
+            return {'status': 401, 'message': 'Unauthorized: You must be logged in to view this request'}, 401
+
+
+
 class adminProperties(Resource):
 
     def get(self):
@@ -859,6 +918,7 @@ api.add_resource(adminLeases, '/admin/leases')
 
 # People
 api.add_resource(adminPeople, '/admin/people')
+api.add_resource(unrentedPeople, '/unrentedPeople')
 
 
 # Properties Page
