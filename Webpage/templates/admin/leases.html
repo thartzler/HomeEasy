@@ -12,12 +12,6 @@
             text-align: center;
             margin:15px 0px;
         }
-        .ourSolutions{
-            max-width: 80%;
-        }
-        .solution {
-            margin: 10px 0;
-        }
         
     </style>
     
@@ -40,72 +34,303 @@
             text-align: center;
             margin:15px 0px;
         }
-        .ourTeam{
-            max-width: 80%;
+        #loadingSpinner {
+            top: 0;
+            left: 0;
+            max-width: 100%;
+            max-height:100%;
         }
-        .team {
-            margin: 10px 0;
+        #tableLoadingSpinner {
+            top: 0;
+            left: 0;
+            max-width: 5%;
+            max-height:5%;
         }
-        #rentRollTable {
-            width: 100%
+        .hide {
+            display: none;
         }
-        
+        #userInterface{
+            margin:auto;
+            text-align: center;
+            display: block;
+            
+        }
+    
     </style>
-
     <!-- Include script for font awesome icon library -->
     <script defer src="https://use.fontawesome.com/releases/v6.5.1/js/all.js"></script>
-
+        
+        
+    <script type="text/javascript">
+        function validate(input) {
+            // var mailformat = /^w+([.-]?w+)*@w+([.-]?w+)*(.w{2,3})+$/;
+            
+            if (/^[a-zA-Z0-9&+?_`~-]/.test(input.value)) {
+                input.setAttribute("class","satisfiedInputField");    //The pop up alert for a valid email address
+                // document.inquiryForm.getElementById("emailAddress").focus();
+                readyToSubmit()
+                return true;
+            }
+            else if (input.value!="" || (input.value=="" && input.hasAttribute("required"))) {
+                // alert("You have entered an invalid email address!");    //The pop up alert for an invalid email address
+                input.setAttribute("class","emptyInputField");
+                
+                // document.getElementById("emailAddress").focus();
+                return false;
+            }
+            else {
+                input.setAttribute("class","inputField")
+                readyToSubmit()
+                return true;
+            }
+        }
+        function readyToSubmit() {
+            for (const ele of document.getElementById("newLeaseForm").querySelectorAll("[required]")) {
+                if (!ele.reportValidity()) {
+                    return;
+                }
+            }
+            document.getElementById("submitButton").disabled=false
+        }
+    </script>
 
 {% endblock %}
 
 
 {% block mainContent %}
     <main>
-        <div class="container rentRoll">
-            <h1>Rent Roll</h1>
+        <a name="leases"></a>
+        <div class="container leases">
             <div class="container">
-                <button id="newPersonButton"><i class="fa-solid fa-user-plus" style="padding-left: 5px;padding-right: 5px;"></i> Add new tenant</button>
+                <button type="button" data-bs-toggle="modal" data-bs-target="#leasesEditModal" id="newLeaseButton"><i class="fa-solid fa-house-user" style="padding-left: 5px;padding-right: 5px;"></i> Create New Lease...</button>
             </div>
-            <div class="container" id="render_rentRollTable">
-                <table id="rentRollTable">
+            <div class="container table-responsive-lg" id="render_leasesTable">
+                
+                <table class="table table-striped table-hover leasesTable">
                     <thead>
                         <tr class="TitleRow">
-                            <td>Tenant - Property</td>
-                            {% for month in monthlist %}
-                            <td>{{ month }}</td>
-                            {% endfor %}
+                            <td diaplay:none class="hide">leaseID</td>
+                            <td>Property</td>
+                            <td>Listed Tenants</td>
+                            <td>Monthly Rent</td>
+                            <td>Monthly Fee(s)</td>
+                            <td>Contract Length</td>
+                            <td>Move-In Date</td>
+                            <td>Contract End</td>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for property in rentRollList %}
-                        <tr class="property">
-                            <td display:none>{{ property.propertyID }}</td>
-                            {% if property.renters %}
-                            <td>{{ property.renters }} <br/> {{property.address}}</td>
-                            {% else %}
-                            <td>--empty--<br/> {{property.address}}</td>
-                            {% endif %}
-                            
-                            {% for month in monthlist %}
-                            <td>
-                                {% if property.isPaid(month) %}
-                                <a><i class="fas square-check fa-6x" style = 'vertical-align: middle;'></i></a>
-                                {% elif property.isOpen %}
-                                <a><i class="fas square-minus fa-6x" style = 'vertical-align: middle;'></i></a>
-                                {% else %}
-                                <a><h4 style = 'vertical-align: middle;'>${{ property.monthlyRentFee }}</h4></a>
-                                {% endif %}
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
+                    <tbody id="leaseTableContent">
+                        
                     </tbody>
                 </table>
             </div>
+            <div class="container justify-content-center" id="userInterface">
+                <div class="row">
+                    <div class="col">
+                        <img src="{{ url_for('static', filename = 'media/spinner.gif') }}" alt="" id="tableLoadingSpinner" class = "">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col" >
+                        <label alt="" id="userMessage" class = "hide userMessage"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <script type="text/javascript">
+            // takes care of loading the data and creating/populating the table
+            
+            window.onload = function() {
+                loadTable();
+            }
+            async function loadTable () {
+                const messageBox = document.getElementById('userMessage');
+                const loadingSpinner = document.getElementById('tableLoadingSpinner');
+                // 0. hide any usermessage
+                loadingSpinner.classList.remove('hide')
+                messageBox.classList.add('hide')
+                messageBox.classList.add('danger')
+                messageBox.innerText = "Timeout: No response from content server"
+
+                setTimeout(() => loadingSpinner.classList.add("hide"), 20000)
+                setTimeout(() => messageBox.classList.remove("hide"), 20000)
+                // 1. Get the data for the table
+                
+                const response = await fetch(`http://api.hartzlerhome.solutions/admin/leases?sessionID=${document.cookie.split('=')[1]}`);
+                // console.log(response)
+                const data = await response.json()
+                if (data.status == 200) {
+                    // show Data
+                    let newRows = ``
+                    for (let leaseData of data.leases) {
+                        let newRow = `<tr>
+                            <td diaplay:none class="hide">${leaseData.leaseID}</td>
+                            <td>${leaseData.name}</td>
+                            <td>${leaseData.phoneNumber}</td>
+                            <td>${leaseData.cellPhoneNumber}</td>
+                            <td>${leaseData.emailAddress}</td>
+                            <td>${leaseData.DOB}</td>
+                            <td>${leaseData.cars}</td>
+                            <td>${leaseData.comments}</td>
+                        </tr>`
+                        newRows += newRow
+                    }
+                    document.getElementById('leaseTableContent').innerHTML = newRows
+                } else {
+                    console.log(data)
+                    messageBox.classList.remove('hide')
+                    messageBox.innerText = data.message
+                    messageBox.classList.add('danger')
+                }
+                loadingSpinner.classList.add('hide')
+            }
+        </script>
+
+        <!-- Modal -->
+        <div class="modal fade" id="leasesEditModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="staticBackdropLabel">Add New Lease</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="container-fluid leaseData">
+                        <form action="" name="newLeaseForm" id="newLeaseForm">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    {{ form.firstName(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.firstName.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.middleName(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.middleName.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.lastName(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.lastName.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    {{ form.emailAddress(class="inputField", onfocusout="ValidateEmail(this)") }}
+                                    {{ form.emailAddress.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ form.phoneNumber(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.phoneNumber.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.cellPhoneNumber(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.cellPhoneNumber.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    {{ form.DOB(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.DOB.label(class="inputLabel") }}
+                                </div>
+                                <div class="col-md-9">
+                                    {{ form.cars(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.cars.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    {{ form.comments(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.comments.label(class="inputLabel") }}
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- <form action="http://api.hartzlerhome.solutions/admin/leases" method="post">
+                        
+                    </form> -->
+                </div>
+                <div class="modal-footer">
+                    <div class="col col-sm-1">
+                        <img src="{{ url_for('static', filename = 'media/spinner.gif') }}" alt="" id="loadingSpinner" class = "hide">
+                    </div>
+                    <label id="userFormMessage" class="userFormMessage"></label>
+                    <button type="button" class="button" tabindex="2" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="button" tabindex="1" id="submitButton" onclick="saveLease()" disabled>Save</button>
+                </div>
+            </div>
+            </div>
         </div>
         
+        <script type="text/javascript">
+            
+            function buildJsonData(form) {
+                const jsonData = {};
+                // const addressInfo = ['houseNumber', 'streetName','city','state','zipCode','apptNo']
+                // const details = ['address','bedroomCount','bathroomCount',
+                // 'parkingCount', 'garageCount', 'storiesCount', 'homeType', 'yearBuilt',
+                // 'purchasePrice', 'purchaseDate', 'schoolDistrict', 'nickname']
+                // const junk = []
+                
+                for (const pair of new FormData(form)) {
+                    jsonData[pair[0]] = pair[1];
+                    // if (addressInfo.includes(pair[0])) {
+                    //     jsonData['address'][pair[0]] = pair[1];
+                    // }else if (details.includes(pair[0])) {
+                    //     jsonData[pair[0]] = pair[1];
+                    // }else if (!junk.includes(pair[0])){
+                    //     jsonData['additionalDetails'][pair[0]] = pair[1];
+                    // }
+                };
+                return jsonData
+            }
 
+            function buildHeaders () {
+                const headers = {
+                    "Content-Type": "application/json"
+                };
+                return headers;
+            }
+            async function saveLease() {
+                const form = document.querySelector("#newLeaseForm");
+                
+                const submitBtn = document.getElementById('submitButton');
+                const spinner = document.getElementById('loadingSpinner');
+                const messageBox = document.getElementById('userFormMessage');
+                submitBtn.disabled = true;
+                spinner.classList.remove('hide');
+                messageBox.setAttribute("class","")
+                messageBox.innerText = "Timeout: No response from server"
+                setTimeout(() => submitBtn.disabled = false, 20000);
+                setTimeout(() => spinner.classList.add('hide'), 20000);
+                
+                const jsonData = buildJsonData(form);
+                const headers = buildHeaders();
+
+                const response = await submitPostHttpRequest("/leases", headers, jsonData);
+
+                if (response) {
+                    const status = response.status
+                    const jsonResponse = response.message
+                    const saveModal = document.querySelector('#leasesEditModal')
+                    spinner.classList.add('hide')
+                    console.log(jsonResponse)
+                    messageBox.innerText = jsonResponse
+
+                    if (status <300) {
+                        messageBox.setAttribute("class","success");
+                        setTimeout(() => document.location.href = '/leases', 2500)
+                    } else {
+                        messageBox.setAttribute("class", "danger")
+                        if ('redirect' in response){
+                            setTimeout(()=> document.location.href = response['redirect'], 2500);
+                        }
+                    }
+                }
+            }
+
+        </script>
         
     </main>
 {% endblock %}

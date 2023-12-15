@@ -308,7 +308,7 @@ class Property_Manager_User(User):
                                 {'name': "Logout",          'link': "/logout",          'pageID': "logout"}]
         
     def getLeasesPage(self, sessionInfo):
-        form = newPropertyForm(request.form)
+        form = newTenantUserForm(request.form)
         resp = make_response(render_template('admin/leases.html', headerData = self.headerContents, form=form))
         return resp
     
