@@ -76,12 +76,13 @@ def rent_roll():
         print (resp)
         return resp, resp['status']
     
-@app.route('/leases')
+@app.route('/leases', methods = ['GET', 'POST'])
 def leases():
     current_member = getCurrentUser(request)
     if request.method == 'GET':
         return current_member.getLeasesPage(request)
     else:
+        print (request.get_json())
         resp = current_member.saveLease(request)
         print (resp)
         return resp, resp['status']

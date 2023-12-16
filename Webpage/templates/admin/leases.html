@@ -267,9 +267,9 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-1">
-                                    <label class="inputLabel" for="feeTable">Fee Schedule</label>
-                                    <div><i class="fa-solid fa-circle-plus" id="addFeeButton" onclick = addFee()></i></div>
-                                    <div><i class="fa-solid fa-circle-minus" id="removeFeeButton" onclick = removeLastFee()></i></div>
+                                    <label class="inputLabel" for="feeTable" style="padding-left: 0px;">Fee Schedule</label>
+                                    <div style="text-align: center;"><i class="fa-solid fa-circle-plus" id="addFeeButton" onclick = addFee()></i></div>
+                                    <div style="text-align: center;"><i class="fa-solid fa-circle-minus hide" id="removeFeeButton" onclick = removeLastFee()></i></div>
                                 </div>
                                 <div class="col-md-11">
                                     <div class="container table-responsive-md" id="render_feeTable">
@@ -278,7 +278,7 @@
                                             <thead>
                                                 <tr class="TitleRow">
                                                     <td diaplay:none class="hide">leaseFeeID</td>
-                                                    <td>Fee Item</td>
+                                                    <td>Fee Name</td>
                                                     <td>Amount</td>
                                                     <td></td>
                                                     <td></td>
@@ -287,8 +287,8 @@
                                                 </tr>
                                             </thead>
                                             <tbody id="feeTableContent">
-                                                <tr>
-                                                    <td diaplay:none class="hide"></td>
+                                                <tr display:none class = "hide" id="rowTemplate">
+                                                    <td display:none class="hide"><input type="number" class="leaseFeeID" id="leaseFeeID"></td>
                                                     <td>{{ form.feeName(class="inputField", onfocusout="validate(this)") }}</td>
                                                     <td>{{ form.feeAmount(class="inputField", onfocusout="validate(this)") }}</td>
                                                     <td>{{ form.feeOccurrence(class="inputField", onfocusout="validate(this)") }}</td>
@@ -383,8 +383,8 @@
                         option.value = periodData.periodID;
                         option2.value = periodData.periodID;
                         option3.value = periodData.periodID;
-                        option.innerText = periodData.name; 
-                        option2.innerText = periodData.name; 
+                        option.innerText = `1 ${periodData.name}`; 
+                        option2.innerText = `${periodData.name}-to-${periodData.name}`; 
                         option3.innerText = periodData.name; 
                         leaseOccurrenceSelect.appendChild(option);
                         leaseSuccessionOccurrenceSelect.appendChild(option2);
@@ -411,36 +411,25 @@
             };
             function addFee() {
                 let feeTable = document.getElementById('feeTableContent');
+                let feeTemplaterRow = document.getElementById('rowTemplate');
+
                 
                 // create row
                 let row = document.createElement("tr");
-
-                // create new cells
-                let c1 = document.createElement('td');
-                let c2 = document.createElement('td');
-                let c3 = document.createElement('td');
-                let c4 = document.createElement('td');
-                let c5 = document.createElement('td');
-                let c6 = document.createElement('td');
-                let c7 = document.createElement('td');
                 
-                c1.style = `display:none`;
-                c2.innerHTML = `{{ form.feeName(class="inputField", onfocusout="validate(this)") }}`;
-                c3.innerHTML = `{{ form.feeAmount(class="inputField", onfocusout="validate(this)") }}`;
-                c4.innerHTML = `{{ form.feeOccurrence(class="inputField", onfocusout="validate(this)") }}`;
-                c5.innerText = ` beginning after `;
-                c5.style = `border-bottom:none;`;
-                c6.innerHTML = `{{ form.startAfterLength(class="inputField", onfocusout="validate(this)") }}`;
-                c7.innerHTML = `{{ form.startAfterOccurrence(class="inputField", onfocusout="validate(this)") }}`;
+                row.innerHTML = feeTemplaterRow.innerHTML;
                 
-                row.appendChild(c1);
-                row.appendChild(c2);
-                row.appendChild(c3);
-                row.appendChild(c4);
-                row.appendChild(c5);
-                row.appendChild(c6);
-                row.appendChild(c7);
+                for (const ele of row.getElementsByTagName("select")) {
+                    ele.required = true;
+                }
+                let requiredInputs = ['feeAmount', 'startAfterLength']
+                for (const ele of row.getElementsByTagName("input")) {
+                    if (requiredInputs.includes(ele.id)) {
+                        ele.required = true;
+                    };
+                }
 
+                // let inputs = feeTemplaterRow.getElementsByTagName('select')
                 feeTable.appendChild(row);
                 document.getElementById('removeFeeButton').classList.remove('hide')
             }
@@ -448,31 +437,30 @@
             function removeLastFee() {
                 const feeTable = document.getElementById('feeTableContent');
                 var rowCount = feeTable.rows.length;
-                if (rowCount <= 1) {
+                if (rowCount <= 2) {
                     document.getElementById('removeFeeButton').classList.add('hide');
                 };
                 feeTable.deleteRow(rowCount -1);
             }
 
             function buildJsonData(form) {
-                const jsonData = {};
-                // const addressInfo = ['houseNumber', 'streetName','city','state','zipCode','apptNo']
-                // const details = ['address','bedroomCount','bathroomCount',
-                // 'parkingCount', 'garageCount', 'storiesCount', 'homeType', 'yearBuilt',
-                // 'purchasePrice', 'purchaseDate', 'schoolDistrict', 'nickname']
-                // const junk = []
+                const jsonData = {'fees': []};
+                const leaseFeeInfo = ['leaseFeeID', 'feeName','feeAmount','feeOccurrence','startAfterLength','startAfterOccurrence']
                 
+                let leaseFee = {};
                 for (const pair of new FormData(form)) {
-                    jsonData[pair[0]] = pair[1];
-                    // if (addressInfo.includes(pair[0])) {
-                    //     jsonData['address'][pair[0]] = pair[1];
-                    // }else if (details.includes(pair[0])) {
-                    //     jsonData[pair[0]] = pair[1];
-                    // }else if (!junk.includes(pair[0])){
-                    //     jsonData['additionalDetails'][pair[0]] = pair[1];
-                    // }
+                    if (leaseFeeInfo.includes(pair[0]) && pair[1]!='') {
+                        leaseFee[pair[0]] = pair[1];
+                        if (pair[0] == 'startAfterOccurrence'){
+                            jsonData['fees'].push(leaseFee);
+                            leaseFee = {};
+                        }
+                    }else {
+                        jsonData[pair[0]] = pair[1];
+                    }
                 };
-                return jsonData
+                // jsonData['fees']
+                return jsonData;
             }
 
             function buildHeaders () {

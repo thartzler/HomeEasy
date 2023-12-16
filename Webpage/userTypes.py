@@ -55,11 +55,11 @@ class newLeaseForm(Form):
     monthlyRent= IntegerField('Monthly Rent*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
     securityDeposit= IntegerField('Security Deposit*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
 
-    feeName= SelectField('fee Name*', [validators.DataRequired()])
-    feeAmount = IntegerField('fee Amount*', [validators.DataRequired(), validators.Regexp('[0-9.]+'), validators.NumberRange(min=0)])
-    feeOccurrence = SelectField('fee Occurrence*', [validators.DataRequired()])
-    startAfterLength = IntegerField('Fee Begins After Amount*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
-    startAfterOccurrence = SelectField('Fee Begins After Period*', [validators.DataRequired()])
+    feeName= SelectField('fee Name*')
+    feeAmount = IntegerField('fee Amount*', [validators.Regexp('[0-9.]+'), validators.NumberRange(min=0)])
+    feeOccurrence = SelectField('fee Occurrence*')
+    startAfterLength = IntegerField('Fee Begins After Amount*', [validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
+    startAfterOccurrence = SelectField('Fee Begins After Period*')
     
 class newPropertyForm(Form):
     nickname= StringField('Nickname*', [validators.DataRequired(), validators.Length(max=50)])
@@ -137,6 +137,48 @@ def _newLandlord(requestInfo):
         return responseData
     else:
         return {'status': 500, 'message': 'Issue creating an account'}
+    
+def _newLease(requestInfo):
+    requestData = requestInfo.get_json()
+    
+    url = 'http://api.hartzlerhome.solutions/admin/leases'
+    
+    fees = []
+    for fee in requestData['fees']:
+        newFee = {
+            "feeID": fee['feeName'],
+            "feeAmount": fee['feeAmount'],
+            "occurrence": fee['feeOccurrence'],
+            "startAfterLength": fee['startAfterLength'],
+            "startAfterOccurrence": fee["startAfterOccurrence"]
+        }
+        fees.append(newFee)
+    payload = json.dumps({
+        'propertyID': int(requestData['property']),
+        'people': [{
+            'personID': int(requestData['tenant']),
+            'role': 'tenant'
+        }],
+        'leaseStatus': requestData['leaseStatus'],
+        'availableDate': requestData['availableDate'],
+        'moveInDate': requestData['moveInDate'],
+        'terminationDate': requestData['terminateDate'],
+        'leaseOccurrence': int(requestData['leaseOccurrence']),
+        'leaseSuccessionOccurrence': int(requestData['leaseSuccessionOccurrence']),
+        'securityDeposit': requestData['securityDeposit'],
+        'contractDocID': '',
+        'fees': fees,
+        "sessionID": requestInfo.cookies['sessionID'],
+        "ipAddress": requestInfo.remote_addr
+    })
+    
+    headers = {'Content-Type': 'application/json'}
+    responseData = requests.request("POST", url, headers=headers, data=payload).json()
+    if responseData:
+        return responseData
+    else:
+        return {'status': 500, 'message': 'Issue saving the lease'}
+
 
 def _saveProperty(requestInfo):
     requestData = requestInfo.get_json()
@@ -338,11 +380,14 @@ class TenantUser(User):
     
     # getPeoplePage() -> parent definition
 
-    def savePerson(self, requestInfo):
-        return _savePerson(requestInfo= requestInfo)
+    # def saveLease(self, requestInfo):
+    #     return _newLease(requestInfo= requestInfo)
     
-    def saveProperty(self, requestInfo):
-        return _saveProperty(requestInfo= requestInfo)
+    # def savePerson(self, requestInfo):
+    #     return _savePerson(requestInfo= requestInfo)
+    
+    # def saveProperty(self, requestInfo):
+    #     return _saveProperty(requestInfo= requestInfo)
 
         
 class Property_Manager_User(User):
@@ -374,11 +419,15 @@ class Property_Manager_User(User):
         resp = make_response(render_template('admin/properties.html', headerData = self.headerContents, form=form))
         return resp
 
+    def saveLease(self, requestInfo):
+        print ("newLease Req: ", requestInfo)
+        return _newLease(requestInfo)
+    
     def savePerson(self, requestInfo):
         return _savePerson(requestInfo= requestInfo)
     
     def saveProperty(self, requestInfo):
-        print (requestInfo)
+        print ("saveProperty Req: ", requestInfo)
         return _saveProperty(requestInfo)
 
 
@@ -403,6 +452,10 @@ class AdminUser(User):
         resp = make_response(render_template('admin/people.html', headerData = self.headerContents, form=form))
         return resp
 
+    def saveLease(self, requestInfo):
+        print ("newLease Req: ", requestInfo)
+        return _newLease(requestInfo)
+    
     def savePerson(self, requestInfo):
         return _savePerson(requestInfo= requestInfo)
     
