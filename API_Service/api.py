@@ -558,7 +558,6 @@ class adminLeases(Resource):
     def get(self):
         # 'GET' request comes directly from the webpage on a client's browser.
         # print(request.args)
-        return {'status': 200, 'leases': [{'leaseID': 4552, 'nickname': '1740','address': '1740 Eastern Road', 'tenants': 'Mark Fields & Jenna Walsch', 'monthlyRent': 650.00, 'monthlyFees': 'Pet: 15/mo<br/>Late: 5.00/day', 'leasePeriod':'1-Yr', 'moveInDate': '2022-06-01', 'endDate':'2023-12-31'}]}
 
         if 'sessionID' in request.args:
             ipAddress = request.remote_addr
@@ -574,46 +573,63 @@ class adminLeases(Resource):
                     #Now check if the person is authorized
                     cRP = sessn.sessionUser.companyRolePerson
                     if len(cRP) >0:
-                        people = []
                         cmpny = cRP[0].associatedCompany
                         print ("company(s): ", cmpny)
 
-                        # Find a list of landlord users for the company who can make people
-                        companyUsers = companyRole.query.filter_by(companyID = cmpny.companyID).all()
-                        for companyUser in companyUsers:
-                            # get a list of the people created by the company's landlord users
-                            peopleCreatedByUser = personDetail.query.filter_by(setPersonID = companyUser.userID).join(personDetail.associatedDetail).filter_by(propertyName='creator').all()
-                            for personCreatedByUser in peopleCreatedByUser:
-                                # print ("personCreatedByUser: ", personCreatedByUser)
-                                people.append(personCreatedByUser.associatedPerson)
-                        print ("PeopleList: ", people)
-                        # Now get a list the people details
-                        returnData = {'status': 200, 'people': []}
-                        for person_i in people:
-
-                            if "personID" in request.args and request.args["personID"] != person_i.personID:
-                                pass
+                        leases = lease.query.filter(lease.terminationDate == None)
+                        leaseReturnList = []
+                        for lease_i in leases:
+                            fees = []
+                            monthlyRent = 'n/a'
+                            leaseFees = leaseFee.query.filter_by(leaseID = lease_i.leaseID)
+                            for leaseFee_i in leaseFees:
+                                if leaseFee_i.feeName == 'Rent':
+                                    monthlyRent = leaseFee_i.feeAmount
+                                else:
+                                    fees.append("%s: %.2f/%s"%(leaseFee_i.feeName,leaseFee_i.feeAmount,leaseFee_i.leaseFeeOccurrence.occurrencePeriod.abbreviation))
+                            
+                            leasePeriodAbbr = lease_i.periodOfLease.abbreviation
+                            if lease_i.moveInDate:
+                                if leasePeriodAbbr == 'wk':
+                                    tD = lease_i.moveInDate + timedelta(weeks = 1)
+                                    tD = tD.strftime("%Y-%m-%d")
+                                elif leasePeriodAbbr == 'mo':
+                                    month = int(lease_i.moveInDate.strftime('%m'))+1
+                                    year = int(lease_i.moveInDate.strftime("%Y"))
+                                    if month >12:
+                                        month -= 12
+                                        year += 1
+                                    tD = str(year)+"-"+str(month)+lease_i.moveInDate.strftime("-%d")
+                                elif leasePeriodAbbr == 'day':
+                                    tD = (lease_i.moveInDate + timedelta(days = 1)).strftime("%Y-%m-%d")
+                                elif leasePeriodAbbr == 'yr':
+                                    tD = str(int(lease_i.moveInDate.strftime("%Y"))+1)+lease_i.moveInDate.strftime("-%m-%d")
+                                else:
+                                    tD = "n/a"
                             else:
-                                # Now build return data
-                                addedDetails = {}
-                                # print("RElated Person: ", person_i)
-                                # print("RElated PersonDetails: ", person_i.relatedPersonDetails)
-                                for additionalDetail in person_i.relatedPersonDetails:
-                                    if additionalDetail.associatedDetail.propertyName != 'creator':
-                                        addedDetails[additionalDetail.associatedDetail.propertyName] = additionalDetail.propertyValue
-                                data = {
-                                    'personID':     person_i.personID,
-                                    'name':    person_i.firstName + " " + person_i.lastName,
-                                    'phoneNumber':  person_i.phoneNumber,
-                                    'cellPhoneNumber':  addedDetails['cellPhoneNumber'],
-                                    'emailAddress': person_i.personsAccount[0].emailAddress,
-                                    'DOB': addedDetails['DOB'],
-                                    'cars':  addedDetails['cars'],
-                                    'comments':  addedDetails['comments']
-                                }
-                                
-                                returnData['people'].append(data)
-                        
+                                tD = "n/a"
+                            
+                            LPList = []
+                            for LPi in lease_i.leasePeople:
+                                if LPi.role == 'tenant':
+                                    LPList.append(LPi.leasePerson.firstName + " " + LPi.leasePerson.lastName)
+                            LnP = ", ".join(LPList)
+
+                            leasData = {
+                                'leaseID': lease_i.leaseID,
+                                'nickname': lease_i.leasedProperty.nickname,
+                                'address': lease_i.leasedProperty.fullAddress.getHouseNStreet(),
+                                'tenants': LnP,
+                                'monthlyRent': monthlyRent,
+                                'monthlyFees': "<br/>".join(fees),
+                                'leasePeriod': "1 "+ str(lease_i.periodOfLease.abbreviation),
+                                'moveInDate': lease_i.moveInDate.strftime("%Y-%m-%d"),
+                                'endDate': tD
+                            }
+                            leaseReturnList.append(leasData)
+
+                        returnData = {'status': 200, 'leases': leaseReturnList}
+
                         return returnData, returnData['status']
                     else:
                         sessionOrComment = "Error with your account"
@@ -766,7 +782,7 @@ class leaseOptions(Resource):
                                 'feeID': appFeeType.feeID, 
                                 'name': appFeeType.feeName,
                                 'description': appFeeType.description,
-                                'defaultPrice': float(appFeeType.defaultPrice),
+                                'defaultPrice': str(appFeeType.defaultPrice),
                                 'defaultOccurrenceID': appFeeType.defaultOccurrence
                                 }
                             returnData['feeTypes'].append(data)

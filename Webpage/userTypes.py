@@ -45,7 +45,7 @@ class newLeaseForm(Form):
     tenant= SelectField('Tenant(s) on lease*', [validators.DataRequired()])
     
     availableDate= DateField('Avail. Date*', [validators.DataRequired()])
-    moveInDate= DateField('Move-in Date')
+    moveInDate= DateField('Move-in Date*', [validators.DataRequired()])
     terminateDate= DateField('Termination Date')
     
     leaseStatus= StringField('Lease Status*', [validators.DataRequired(),validators.Length(max=50)])
