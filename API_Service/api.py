@@ -776,7 +776,7 @@ class leaseOptions(Resource):
                             returnData['people'].append(data)
                         
                         # Get the list of properties without active leases
-                        unrentedProperties = property.query.filter_by(companyID = cmpny.companyID).join(property.propertyLease, isouter=True).filter(lease.terminationDate == None).all()
+                        unrentedProperties = property.query.filter_by(companyID = cmpny.companyID).join(property.propertyLease, isouter=True).filter(lease.availableDate == None,lease.terminationDate == None).all()
                         for unrentedProperty in unrentedProperties:
                             data = {
                                 'propertyID': unrentedProperty.propertyID,
