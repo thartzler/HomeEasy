@@ -164,8 +164,8 @@ CREATE TABLE [dbo].[userLeases] (
     [availableDate]             DATE         NOT NULL,
     [moveInDate]                DATE         NULL,
     [terminationDate]           DATE         NULL,
-    [leaseOccurrence]           INT          NOT NULL,
-    [leaseSuccessionOccurrence] INT          NULL,
+    [leasePeriod]               INT          NOT NULL,
+    [leaseSuccessionPeriod]     INT          NULL,
     [securityDeposit]           FLOAT (53)   NOT NULL,
     [contractDocID]             VARCHAR (50) NULL,
     [createUser]                INT          NOT NULL,
@@ -343,8 +343,8 @@ ALTER TABLE [dbo].[userEmploymentHistory] (
 );
 
 ALTER TABLE [dbo].[userLeases] (
-    CONSTRAINT [FK_userLease_appOccurrences] FOREIGN KEY ([leaseOccurrence]) REFERENCES [dbo].[appOccurrences] ([occurrenceID]),
-    CONSTRAINT [FK_userLease_appOccurrences_leaseSuccession] FOREIGN KEY ([leaseSuccessionOccurrence]) REFERENCES [dbo].[appOccurrences] ([occurrenceID]),
+    CONSTRAINT [FK_userLease_appPeriods] FOREIGN KEY ([leasePeriod]) REFERENCES [dbo].[appPeriods] ([periodID]),
+    CONSTRAINT [FK_userLease_appPeriods_leaseSuccession] FOREIGN KEY ([leaseSuccessionPeriod]) REFERENCES [dbo].[appPeriods] ([periodID]),
     CONSTRAINT [FK_userLease_userAccounts] FOREIGN KEY ([createUser]) REFERENCES [dbo].[userAccounts] ([userID]),
     CONSTRAINT [FK_userLease_userProperties] FOREIGN KEY ([propertyID]) REFERENCES [dbo].[userProperties] ([propertyID])
 );

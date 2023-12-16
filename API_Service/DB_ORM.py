@@ -50,8 +50,6 @@ class occurrence(db.Model):
     occurrence = db.Column(db.Integer, nullable = False)
     perPeriod =     db.Column(db.Integer, db.ForeignKey('appPeriods.periodID'), nullable = True)
 
-    # occurrenceOfLeasePayments = db.relationship('lease', back_populates = 'paymentOccurrence')           #done
-    # occurrenceOfPaymentAfterLeases = db.relationship('lease', back_populates = 'paymentOccurrenceAfterLease') #done
     occurrenceFeeTypes = db.relationship('feeType', back_populates='feeTypeOccurrence')     #done
     occurrenceLeaseFees = db.relationship('leaseFee', back_populates='leaseFeeOccurrence')  #done
     occurrencePeriod = db.relationship('period', back_populates='periodOccurrences')        #done
@@ -91,6 +89,9 @@ class period(db.Model):
     periodID =      db.Column(db.Integer, primary_key=True, nullable = False, unique = True)
     name =          db.Column(db.VARCHAR(20), nullable = False)
     abbreviation =  db.Column(db.VARCHAR(8), nullable = False)
+
+    # leasesWithPeriod = db.relationship('lease', back_populates = 'periodOfLease')           #done
+    # leasesWithPeriodAfterInitialPeriod = db.relationship('lease', back_populates = 'periodOfLeaseAfterInitialPeriod') #done
 
     periodOccurrences = db.relationship('occurrence', back_populates='occurrencePeriod')    #done
     periodLeaseFees = db.relationship('leaseFee', back_populates='leaseFeePeriod')          #done
@@ -344,8 +345,8 @@ class lease(db.Model):
     availableDate =             db.Column(db.Date, nullable = False)
     moveInDate =                db.Column(db.Date, nullable = True)
     terminationDate =           db.Column(db.Date, nullable = True)
-    leaseOccurrence =           db.Column(db.Integer, db.ForeignKey('appOccurrences.occurrenceID'), nullable = False)
-    leaseSuccessionOccurrence = db.Column(db.Integer, db.ForeignKey('appOccurrences.occurrenceID'), nullable = True)
+    leasePeriod =               db.Column(db.Integer, db.ForeignKey('appPeriods.periodID'), nullable = False)
+    leaseSuccessionPeriod =     db.Column(db.Integer, db.ForeignKey('appPeriods.periodID'), nullable = True)
     securityDeposit =           db.Column(db.Float, nullable = False)
     contractDocID =             db.Column(db.VARCHAR(50), nullable = True)
     createUser =                db.Column(db.Integer, db.ForeignKey('userAccounts.userID'), nullable = False)
@@ -357,8 +358,8 @@ class lease(db.Model):
     leaseFees       = db.relationship('leaseFee', back_populates = 'FeeOnLease')        #done
     leaseAuthor     = db.relationship('userAccount', back_populates = 'authoredLease')  #done
     # applications    = db.relationship('application', back_populates='lease')            #missing - STRETCH
-    paymentOccurrence = db.relationship('occurrence', foreign_keys=[leaseOccurrence])           #done
-    paymentOccurrenceAfterLease = db.relationship('occurrence', foreign_keys=[leaseSuccessionOccurrence])#back_populates = 'occurrenceOfPaymentAfterLeases') #done
+    periodOfLease = db.relationship('period', foreign_keys=[leasePeriod])#back_populates = 'leasesWithPeriod')           #done
+    periodOfLeaseAfterInitialPeriod = db.relationship('period', foreign_keys=[leaseSuccessionPeriod])#back_populates = 'leasesWithPeriodAfterInitialPeriod') #done
 
     def __repr__(self) -> None:
         return "<lease(leaseID = '%r', property = '%s', status = '%s')>" %(self.leaseID, self.leasedProperty, self.leaseStatus)
@@ -389,7 +390,7 @@ class leaseFee(db.Model):
     occurrence =        db.Column(db.Integer, db.ForeignKey("appOccurrences.occurrenceID"), nullable = False)
     startAfterLength =  db.Column(db.String, nullable = False)
     startAfterPeriod =  db.Column(db.Integer, db.ForeignKey("appPeriods.periodID"), nullable = False)
-    createdUser =       db.Column(db.Integer, db.ForeignKey("userAccounts.userID"), nullable = False)
+    createUser =        db.Column(db.Integer, db.ForeignKey("userAccounts.userID"), nullable = False)
     createDate =        db.Column(db.DateTime, nullable = False)
 
     FeeOnLease =            db.relationship('lease', back_populates = 'leaseFees')              #done

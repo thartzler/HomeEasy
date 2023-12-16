@@ -193,7 +193,7 @@
 
         <!-- Modal -->
         <div class="modal fade" id="leasesEditModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                 <h5 class="modal-title" id="staticBackdropLabel">Add New Lease</h5>
@@ -242,27 +242,15 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-5">
-                                    {{ form.leaseOccurrence(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.leaseOccurrence.label(class="inputLabel") }}
+                                    {{ form.leasePeriod(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.leasePeriod.label(class="inputLabel") }}
                                 </div>
                                 <div class="col-md-2">
                                     <p></p>
                                 </div>
                                 <div class="col-md-5">
-                                    {{ form.leaseSuccessionOccurrence(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.leaseSuccessionOccurrence.label(class="inputLabel") }}
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-5">
-                                    {{ form.monthlyRent(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.monthlyRent.label(class="inputLabel") }}
-                                </div>
-                                <div class="col-md-2">
-                                </div>
-                                <div class="col-md-5">
-                                    {{ form.securityDeposit(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.securityDeposit.label(class="inputLabel") }}
+                                    {{ form.leaseSuccessionPeriod(class="inputField", onfocusout="validate(this)") }}
+                                    {{ form.leaseSuccessionPeriod.label(class="inputLabel") }}
                                 </div>
                             </div>
                             <div class="row">
@@ -294,7 +282,7 @@
                                                     <td>{{ form.feeOccurrence(class="inputField", onfocusout="validate(this)") }}</td>
                                                     <td style="border-bottom:none;"> beginning after </td>
                                                     <td>{{ form.startAfterLength(class="inputField", onfocusout="validate(this)") }}</td>
-                                                    <td>{{ form.startAfterOccurrence(class="inputField", onfocusout="validate(this)") }}</td>
+                                                    <td>{{ form.startAfterPeriod(class="inputField", onfocusout="validate(this)") }}</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -369,9 +357,9 @@
                     };
                     
                     // 2.4 populate the period boxes
-                    let leaseOccurrenceSelect = document.getElementById('leaseOccurrence');
-                    let leaseSuccessionOccurrenceSelect = document.getElementById('leaseSuccessionOccurrence');
-                    let startAfterOccurrenceSelect = document.getElementById('startAfterOccurrence');
+                    let leaseOccurrenceSelect = document.getElementById('leasePeriod');
+                    let leaseSuccessionOccurrenceSelect = document.getElementById('leaseSuccessionPeriod');
+                    let startAfterOccurrenceSelect = document.getElementById('startAfterPeriod');
                     leaseOccurrenceSelect.appendChild(document.createElement("option"));
                     leaseSuccessionOccurrenceSelect.appendChild(document.createElement("option"));
                     startAfterOccurrenceSelect.appendChild(document.createElement("option"));
@@ -445,13 +433,13 @@
 
             function buildJsonData(form) {
                 const jsonData = {'fees': []};
-                const leaseFeeInfo = ['leaseFeeID', 'feeName','feeAmount','feeOccurrence','startAfterLength','startAfterOccurrence']
+                const leaseFeeInfo = ['leaseFeeID', 'feeName','feeAmount','feeOccurrence','startAfterLength','startAfterPeriod']
                 
                 let leaseFee = {};
                 for (const pair of new FormData(form)) {
                     if (leaseFeeInfo.includes(pair[0]) && pair[1]!='') {
                         leaseFee[pair[0]] = pair[1];
-                        if (pair[0] == 'startAfterOccurrence'){
+                        if (pair[0] == 'startAfterPeriod'){
                             jsonData['fees'].push(leaseFee);
                             leaseFee = {};
                         }

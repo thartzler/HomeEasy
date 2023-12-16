@@ -170,6 +170,99 @@ def newLandlordAccount(jsonData):
     # except Exception as e:
     #     return False, e
 
+def createLease(jsonData):
+
+    # 1. make lease
+    # 2. make Lease-People connection
+    # 3. make leaseFees
+    createdDBItems = []
+
+    requiredAttrs = ['propertyID', 'people', 'leaseStatus', 
+                     'availableDate', 'leasePeriod', 'leaseSuccessionPeriod',
+                     'fees']
+
+    for attribute in requiredAttrs:
+        if attribute not in jsonData:
+            print (jsonData)
+            return False, "Failed to create Tenant Account: Missing %s in jsonData"%attribute
+
+    __newLease = lease(
+        propertyID = int(jsonData['propertyID']), 
+        leaseStatus = jsonData['leaseStatus'], 
+        availableDate = datetime.strptime(jsonData['availableDate'],'%Y-%m-%d'), 
+        moveInDate = None if 'moveInDate' not in jsonData else datetime.strptime(jsonData['moveInDate'],'%Y-%m-%d'),
+        terminationDate = None if 'terminationDate' not in jsonData else datetime.strptime(jsonData['terminationDate'],'%Y-%m-%d'),
+        leasePeriod=int(jsonData['leasePeriod']),
+        leaseSuccessionPeriod=int(jsonData['leaseSuccessionPeriod']),
+        securityDeposit = '',#float(jsonData['securityDeposit']),
+        contractDocID = None if 'contractDocID' not in jsonData else jsonData['contractDocID'],
+        createUser = int(jsonData['createUser']),
+        createDate = datetime.utcnow()
+    )
+
+    db.session.add(__newLease)
+    db.session.commit()
+    createdDBItems.append(__newLease)
+
+    for person in jsonData['people']:
+        peopleRequirements = ['personID', 'role']
+        for attribute in peopleRequirements:
+            if attribute not in person:
+                print ("Error writing the leasePerson", person)
+                for dbItem in createdDBItems:
+                    db.session.remove(dbItem)
+                db.session.commit()
+                return False, "Failed to create leasePerson: missing %s"%attribute
+        
+        __newLeasePerson = leasePerson(
+            leaseID = __newLease.leaseID,
+            personID = int(person['personID']),
+            role = person['role']
+        )
+        db.session.add(__newLeasePerson)
+        createdDBItems.append(__newLeasePerson)
+    db.session.commit()
+
+    # rentOccurrence = occurrence.query.filter_by(occurrence = 1).join(occurrence.occurrencePeriod).filter(name = 'month').one()
+    # jsonData['fees'].append({
+    #     "feeID": 4, 
+    #     "feeAmount": float(jsonData['monthlyRent']), 
+    #     "occurrence": 1, 
+    #     "startAfterLength": 0, 
+    #     "startAfterPeriod": 3
+    #     })
+
+    for fee in jsonData['fees']:
+        feeRequirements = ['feeID', 'feeAmount','occurrence','startAfterLength','startAfterPeriod']
+        for attribute in feeRequirements:
+            if attribute not in fee:
+                print ("Error writing the leaseFee", fee)
+                # Delete all the previously created DB items for this function execution
+                for dbItem in createdDBItems:
+                    db.session.remove(dbItem)
+                db.session.commit()
+                return False, "Failed to create Tenant Account: Missing %s in jsonData"%attribute
+        feeName = feeType.query.filter_by(feeID = int(fee['feeID'])).one().feeName
+        __newLeaseFee = leaseFee(
+            leaseID = __newLease.leaseID,
+            feeID = int(fee['feeID']),
+            feeName = feeName,
+            feeAmount = float(fee['feeAmount']),
+            occurrence = int(fee['occurrence']),
+            startAfterLength = int(fee['startAfterLength']),
+            startAfterPeriod = int(fee['startAfterPeriod']),
+            createUser = fee['createUser'],
+            createDate = datetime.utcnow(),
+        )
+
+        db.session.add(__newLeaseFee)
+        createdDBItems.append(__newLeaseFee)
+    db.session.commit()
+
+    return True, __newLease
+    # except Exception as e:
+    #     return False, e
+
 def createTenant(jsonData):
 
     # 1. make person
@@ -535,26 +628,38 @@ class adminLeases(Resource):
         if request.remote_addr != '20.228.226.251' and request.remote_addr != '127.0.0.1' and request.remote_addr != '24.101.69.174':
             return {'status': 403, 'message': 'Forbidden: You cannot view this request'}, 403
 
-        peopleJsonData = {}
-        requiredItems = ['sessionID', 'ipAddress', 'firstName', 'lastName', 'emailAddress', 'phoneNumber', 'additionalDetails']
-        additionalRequirements = ['cellPhoneNumber', 'DOB','middleName','cars','comments']
-        
+        leaseJsonData = {}
+        requiredItems = ['sessionID', 'ipAddress', 'propertyID', 'people', 'leaseStatus', 
+                         'availableDate', 'leasePeriod', 'leaseSuccessionPeriod',
+                         'fees']
+        feeRequirements = ['feeID', 'feeAmount','occurrence','startAfterLength','startAfterPeriod']
+        peopleRequirements = ['personID', 'role']
+
         requestData = request.get_json()
         for dataItem in requestData:
             if dataItem in requiredItems:
                 requiredItems.remove(dataItem)
-                if dataItem == 'additionalDetails':
-                    # FUTURE: Add some code to check for previous address and make new addressID
-                    for addressComp in requestData[dataItem]:
-                        if addressComp in additionalRequirements:
-                            additionalRequirements.remove(addressComp)
-                    if len(additionalRequirements)>=1:
-                        return {'status': 400, 'message': "Missing additiona user detail(s)", "missingField(s)": additionalRequirements}, 400
-                    peopleJsonData['additionalDetails'] = requestData[dataItem]
+                if dataItem == 'people':
+                    # FUTURE: Add some code to check that the personID is not already on a lease
+                    for person in requestData[dataItem]:
+                        for personComp in person:
+                            if personComp in peopleRequirements:
+                                peopleRequirements.remove(personComp)
+                        if len(peopleRequirements)>=1:
+                            return {'status': 400, 'message': "Missing Tenant detail(s)", "problemObject": person, "missingField(s)": peopleRequirements}, 400
+                    leaseJsonData['people'] = requestData[dataItem]
+                if dataItem == 'fees':
+                    for fee_i in requestData[dataItem]:
+                        for feeComp in fee_i:
+                            if feeComp in feeRequirements:
+                                feeRequirements.remove(feeComp)
+                        if len(feeRequirements)>=1:
+                            return {'status': 400, 'message': "Missing fee detail(s)", "problemObject": fee_i, "missingField(s)": feeRequirements}, 400
+                    leaseJsonData['fees'] = requestData[dataItem]
                 elif dataItem in ['sessionID', 'ipAddress']:
                     pass
                 else:
-                    peopleJsonData[dataItem] = requestData[dataItem]
+                    leaseJsonData[dataItem] = requestData[dataItem]
             
         if len(requiredItems) >=1:
             return {'status': 400, 'message': "Missing necessary information to create a new person", "missingField(s)": requiredItems}, 400
@@ -576,17 +681,17 @@ class adminLeases(Resource):
                 # if similarUsers:
                 #     return {'status': 403, 'message': "This username already exists: '%s'"%str(accountJsonData['emailAddress'])}, 403
                 
-                peopleJsonData['companyID'] = sessn.sessionUser.companyRolePerson[0].associatedCompany.companyID
-                peopleJsonData['additionalDetails']['creator'] = ""
-                peopleJsonData['createdBy']=sessn.sessionUser
-                peopleJsonData['passHash'] = bcrypt.hashpw(peopleJsonData['additionalDetails']['DOB'].encode('utf-8'),bcrypt.gensalt())
+                leaseJsonData['companyID'] = sessn.sessionUser.companyRolePerson[0].associatedCompany.companyID
+                for fee in leaseJsonData['fees']:
+                    fee['createUser'] = sessn.userID
+                leaseJsonData['createUser']=sessn.userID
 
-                wasCreated, reslt = createTenant(peopleJsonData)
+                wasCreated, reslt = createLease(leaseJsonData)
                 if wasCreated:
-                    return {'status': 201, 'message':'Success: User account has been created!','userID':str(reslt.userID)}, 201#,'redirectURL':'./home'}
+                    return {'status': 201, 'message':'Success: Lease has been created!','leaseID':str(reslt.leaseID)}, 201#,'redirectURL':'./home'}
                 else:
                     print ( dir(reslt))
-                    return {'status': 500, 'message':'Failed to create new person','error':str(reslt),'traceback':reslt.args,'redirectURL':'#'}, 500
+                    return {'status': 500, 'message':'Failed to create new lease','error':str(reslt),'redirectURL':'#'}, 500
             else:
                 return {'status': 403, 'message': 'Forbidden: Insufficient authority to add a property'}, 403
         return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401

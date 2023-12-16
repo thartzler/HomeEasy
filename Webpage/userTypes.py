@@ -48,18 +48,18 @@ class newLeaseForm(Form):
     moveInDate= DateField('Move-in Date')
     terminateDate= DateField('Termination Date')
     
-    leaseStatus= StringField('Lease Status*', [validators.DataRequired()])
+    leaseStatus= StringField('Lease Status*', [validators.DataRequired(),validators.Length(max=50)])
     
-    leaseOccurrence= SelectField('Lease Term*', [validators.DataRequired()])
-    leaseSuccessionOccurrence= SelectField('Auto-Renewal Term After Initial Term*', [validators.DataRequired()])
-    monthlyRent= IntegerField('Monthly Rent*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
-    securityDeposit= IntegerField('Security Deposit*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
+    leasePeriod= SelectField('Lease Term*', [validators.DataRequired()])
+    leaseSuccessionPeriod= SelectField('New Term After Initial Lease Term*', [validators.DataRequired()])
+    # monthlyRent= IntegerField('Monthly Rent*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
+    # securityDeposit= IntegerField('Security Deposit*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
 
     feeName= SelectField('fee Name*')
     feeAmount = IntegerField('fee Amount*', [validators.Regexp('[0-9.]+'), validators.NumberRange(min=0)])
     feeOccurrence = SelectField('fee Occurrence*')
     startAfterLength = IntegerField('Fee Begins After Amount*', [validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
-    startAfterOccurrence = SelectField('Fee Begins After Period*')
+    startAfterPeriod = SelectField('Fee Begins After Period*')
     
 class newPropertyForm(Form):
     nickname= StringField('Nickname*', [validators.DataRequired(), validators.Length(max=50)])
@@ -150,7 +150,7 @@ def _newLease(requestInfo):
             "feeAmount": fee['feeAmount'],
             "occurrence": fee['feeOccurrence'],
             "startAfterLength": fee['startAfterLength'],
-            "startAfterOccurrence": fee["startAfterOccurrence"]
+            "startAfterPeriod": fee["startAfterPeriod"]
         }
         fees.append(newFee)
     payload = json.dumps({
@@ -163,9 +163,10 @@ def _newLease(requestInfo):
         'availableDate': requestData['availableDate'],
         'moveInDate': requestData['moveInDate'],
         'terminationDate': requestData['terminateDate'],
-        'leaseOccurrence': int(requestData['leaseOccurrence']),
-        'leaseSuccessionOccurrence': int(requestData['leaseSuccessionOccurrence']),
-        'securityDeposit': requestData['securityDeposit'],
+        'leasePeriod': int(requestData['leasePeriod']),
+        'leaseSuccessionPeriod': int(requestData['leaseSuccessionPeriod']),
+        # 'monthlyRent': requestData['monthlyRent'],
+        # 'securityDeposit': requestData['securityDeposit'],
         'contractDocID': '',
         'fees': fees,
         "sessionID": requestInfo.cookies['sessionID'],
