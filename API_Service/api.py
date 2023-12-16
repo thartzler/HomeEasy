@@ -185,13 +185,22 @@ def createLease(jsonData):
         if attribute not in jsonData:
             print (jsonData)
             return False, "Failed to create Tenant Account: Missing %s in jsonData"%attribute
+    if 'moveInDate' in jsonData:
+        mID = datetime.strptime(jsonData['moveInDate'],'%Y-%m-%d')
+    else:
+        mID = None
+
+    if 'terminationDate' not in jsonData:
+        tD = None
+    else:
+        tD = datetime.strptime(jsonData['terminationDate'],'%Y-%m-%d')
 
     __newLease = lease(
         propertyID = int(jsonData['propertyID']), 
         leaseStatus = jsonData['leaseStatus'], 
         availableDate = datetime.strptime(jsonData['availableDate'],'%Y-%m-%d'), 
-        moveInDate = None if 'moveInDate' not in jsonData else datetime.strptime(jsonData['moveInDate'],'%Y-%m-%d'),
-        terminationDate = None if 'terminationDate' not in jsonData else datetime.strptime(jsonData['terminationDate'],'%Y-%m-%d'),
+        moveInDate = mID,
+        terminationDate = tD,
         leasePeriod=int(jsonData['leasePeriod']),
         leaseSuccessionPeriod=int(jsonData['leaseSuccessionPeriod']),
         securityDeposit = '',#float(jsonData['securityDeposit']),
