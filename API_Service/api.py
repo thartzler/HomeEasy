@@ -966,7 +966,7 @@ class adminLeases(Resource):
                                 'monthlyFees': "<br/>".join(fees),
                                 'leasePeriod': "1 "+ str(lease_i.periodOfLease.abbreviation),
                                 'moveInDate': lease_i.moveInDate.strftime("%Y-%m-%d"),
-                                'endDate': getDateOnePeriodLater(lease_i.moveInDate, lease_i.periodOfLease.abbreviation)
+                                'endDate': getDateOnePeriodLater(lease_i.moveInDate, lease_i.periodOfLease.abbreviation).strftime("%Y-%m-%d")
                             }
                             leaseReturnList.append(leasData)
 
@@ -1114,7 +1114,7 @@ class leaseOptions(Resource):
                                 'address': unrentedProperty.fullAddress.getHouseNStreet()
                             }
                             returnData['properties'].append(data)
-                        appFeeTypes = feeType.query.filter_by().sort_by(feeType.displayOrder.asc()).all()
+                        appFeeTypes = feeType.query.filter_by().order_by(feeType.displayOrder.asc()).all()
                         for appFeeType in appFeeTypes:
                             data = {
                                 'feeID': appFeeType.feeID, 

@@ -12,12 +12,6 @@
             text-align: center;
             margin:15px 0px;
         }
-        .ourSolutions{
-            max-width: 80%;
-        }
-        .solution {
-            margin: 10px 0;
-        }
         
     </style>
     
@@ -40,14 +34,32 @@
             text-align: center;
             margin:15px 0px;
         }
-        .ourTeam{
-            max-width: 80%;
+        #loadingSpinner {
+            top: 0;
+            left: 0;
+            max-width: 100%;
+            max-height:100%;
         }
-        .team {
-            margin: 10px 0;
+        #tableLoadingSpinner {
+            top: 0;
+            left: 0;
+            max-width: 5%;
+            max-height:5%;
+        }
+        .hide {
+            display: none;
+        }
+        #userInterface{
+            margin:auto;
+            text-align: center;
+            display: block;
+            
         }
         #rentRollTable {
             width: 100%
+        }
+        .chartCell{
+            text-align: center;
         }
         
     </style>
@@ -60,6 +72,12 @@
         <a name="rentRoll"></a>
         <div class="container rentRoll">
             <h1>Rent Roll</h1>
+            <!-- <div>
+                <form action="refreshTable()" class="dateRange">
+                    
+                </form>
+
+            </div> -->
             <!-- <div class="container">
                 <button id="rentPaymentButton"></button>
             </div> -->
@@ -69,38 +87,119 @@
                         <tr class="TitleRow">
                             <td>Tenant - Property</td>
                             {% for month in monthlist %}
-                            <td>{{ month }}</td>
+                            <td class="chartCell">{{ month }}</td>
                             {% endfor %}
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for property in rentRollList %}
-                        <tr class="property">
-                            <td display:none>{{ property.propertyID }}</td>
-                            {% if property.renters %}
-                            <td>{{ property.renters }} <br/> {{property.address}}</td>
-                            {% else %}
-                            <td>--empty--<br/> {{property.address}}</td>
-                            {% endif %}
-                            
-                            {% for month in monthlist %}
-                            <td>
-                                {% if property.isPaid(month) %}
-                                <a><i class="fas square-check fa-6x" style = 'vertical-align: middle;'></i></a>
-                                {% elif property.isOpen %}
-                                <a><i class="fas square-minus fa-6x" style = 'vertical-align: middle;'></i></a>
-                                {% else %}
-                                <a><h4 style = 'vertical-align: middle;'>${{ property.monthlyRentFee }}</h4></a>
-                                {% endif %}
-                            </td>
-                            {% endfor %}
-                        </tr>
-                        {% endfor %}
+                    <tbody id="rentRollTableContents">
+                        
                     </tbody>
                 </table>
             </div>
-
+            <div class="container justify-content-center" id="userInterface">
+                <div class="row">
+                    <div class="col">
+                        <img src="{{ url_for('static', filename = 'media/spinner.gif') }}" alt="" id="tableLoadingSpinner" class = "">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col" >
+                        <label alt="" id="userMessage" class = "hide userMessage"></label>
+                    </div>
+                </div>
+            </div>
         </div>
+        <script type="text/javascript">
+
+            async function loadTable () {
+                const messageBox = document.getElementById('userMessage');
+                const loadingSpinner = document.getElementById('tableLoadingSpinner');
+                // 0. hide any usermessage
+                loadingSpinner.classList.remove('hide')
+                messageBox.classList.add('hide')
+                messageBox.classList.add('danger')
+                messageBox.innerText = "Timeout: No response from content server"
+
+                setTimeout(() => loadingSpinner.classList.add("hide"), 20000)
+                let msgBoxTimeout = setTimeout(() => messageBox.classList.remove("hide"), 20000)
+
+                let startDate = '2023-01-01'
+                let endDate = '2023-12-31'
+                
+                const response = await fetch(`http://api.hartzlerhome.solutions/rent?sessionID=${document.cookie.split('=')[1]}&viewStartDate=${startDate}&viewEndDate=${endDate}`);
+                const data = await response.json()
+                console.log(data)
+                
+                if (data.status == 200) {
+                    // show Data
+                    let newRows = ``;
+                    console.log(data.data)
+                    for (let companyData of data.data) {
+                        for (let rentRollData of companyData.rentRoll) {
+                            let newRow = document.createElement('tr');
+                            let newCell = document.createElement('td')
+                            newCell.innerHTML = `<span style='font-size: 1.2rem;font-weight: 600;'>${rentRollData.nickname}</span><br/>${rentRollData.address}`
+                            newRow.appendChild(newCell)
+                            for (let statuses of rentRollData.paymentStatuses) {
+                                let newCell2 = document.createElement('td');
+                                if (statuses.status) {
+                                    newCell2.innerHTML = statuses.status
+                                } else {
+                                    newCell2.innerText = `$ ${statuses.amount}`
+                                }
+                                newCell2.classList.add("chartCell")
+                                newRow.appendChild(newCell2);
+                            }
+                            document.getElementById('rentRollTableContents').appendChild(newRow)
+                        }
+                        //         <td display:none class="hide">${leaseData.leaseID}</td>
+                        //         <td><span style='font-size: 1.2rem;font-weight: 600;'>${leaseData.nickname}</span><br/>${leaseData.address}</td>
+                        //         <td>${leaseData.tenants}</td>
+                        //         <td>${leaseData.monthlyRent}</td>
+                        //         <td>${leaseData.monthlyFees}</td>
+                        //         <td>${leaseData.leasePeriod}</td>
+                        //         <td>${leaseData.moveInDate}</td>
+                        //         <td>${leaseData.endDate}</td>
+                        //     </tr>`
+
+                        
+                        // `{% for property in rentRollList %}
+                        //     <tr class="property">
+                        //         <td display:none>{{ property.propertyID }}</td>
+                        //         {% if property.renters %}
+                        //         <td>{{ property.renters }} <br/> {{property.address}}</td>
+                        //         {% else %}
+                        //         <td>--empty--<br/> {{property.address}}</td>
+                        //         {% endif %}
+                                
+                        //         {% for month in monthlist %}
+                        //         <td>
+                        //             {% if property.isPaid(month) %}
+                        //             <a><i class="fas square-check fa-6x" style = 'vertical-align: middle;'></i></a>
+                        //             {% elif property.isOpen %}
+                        //             <a><i class="fas square-minus fa-6x" style = 'vertical-align: middle;'></i></a>
+                        //             {% else %}
+                        //             <a><h4 style = 'vertical-align: middle;'>${{ property.monthlyRentFee }}</h4></a>
+                        //             {% endif %}
+                        //         </td>
+                        //         {% endfor %}
+                        //     </tr>
+                        //     {% endfor %}`
+                        //     newRows += newRow
+                    }
+                    
+                    clearTimeout(msgBoxTimeout)
+                    messageBox.innerText = ''
+                        
+                } else {
+                    console.log(data)
+                    messageBox.classList.remove('hide')
+                    messageBox.innerText = data.message
+                    messageBox.classList.add('danger')
+                }
+                loadingSpinner.classList.add('hide')
+            }
+        </script>
         
 
         
