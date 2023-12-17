@@ -219,56 +219,6 @@
                 <div class="modal-body">
                     <div class="container-fluid leaseData">
                         <form action="" name="newLeaseForm" id="newLeaseForm">
-                            <div class="row">
-                                <div class="col">
-                                    {{ form.property(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.property.label(class="inputLabel") }}
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col">
-                                    {{ form.tenant(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.tenant.label(class="inputLabel") }}
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-3">
-                                    {{ form.availableDate(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.availableDate.label(class="inputLabel") }}
-                                </div>
-                                <div class="col-md-1">
-                                    
-                                </div>
-                                <div class="col-md-3">
-                                    {{ form.moveInDate(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.moveInDate.label(class="inputLabel") }}
-                                </div>
-                                <div class="col-md-1">
-                                    
-                                </div>
-                                <div class="col-md-3">
-                                    {{ form.terminateDate(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.terminateDate.label(class="inputLabel") }}
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col">
-                                    {{ form.leaseStatus(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.leaseStatus.label(class="inputLabel") }}
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-5">
-                                    {{ form.leasePeriod(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.leasePeriod.label(class="inputLabel") }}
-                                </div>
-                                <div class="col-md-2">
-                                    <p></p>
-                                </div>
-                                <div class="col-md-5">
-                                    {{ form.leaseSuccessionPeriod(class="inputField", onfocusout="validate(this)") }}
-                                    {{ form.leaseSuccessionPeriod.label(class="inputLabel") }}
-                                </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-1">
@@ -294,12 +244,6 @@
                                             <tbody id="feeTableContent">
                                                 <tr display:none class = "hide" id="rowTemplate">
                                                     <td display:none class="hide"><input type="number" class="leaseFeeID" id="leaseFeeID"></td>
-                                                    <td>{{ form.feeName(class="inputField", onfocusout="validate(this)") }}</td>
-                                                    <td>{{ form.feeAmount(class="inputField", onfocusout="validate(this)") }}</td>
-                                                    <td>{{ form.feeOccurrence(class="inputField", onfocusout="validate(this)") }}</td>
-                                                    <td style="border-bottom:none;"> beginning after </td>
-                                                    <td>{{ form.startAfterLength(class="inputField", onfocusout="validate(this)") }}</td>
-                                                    <td>{{ form.startAfterPeriod(class="inputField", onfocusout="validate(this)") }}</td>
                                                 </tr>
                                             </tbody>
                                         </table>
