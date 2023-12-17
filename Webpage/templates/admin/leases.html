@@ -366,18 +366,20 @@
                     startAfterOccurrenceSelect.appendChild(document.createElement("option"));
                     for (let periodData of data.periods) {
                         // create new option
-                        let option = document.createElement("option");
                         let option2 = document.createElement("option");
                         let option3 = document.createElement("option");
-                        option.value = periodData.periodID;
                         option2.value = periodData.periodID;
                         option3.value = periodData.periodID;
-                        option.innerText = `1 ${periodData.name}`; 
                         option2.innerText = `${periodData.name}-to-${periodData.name}`; 
                         option3.innerText = periodData.name; 
-                        leaseOccurrenceSelect.appendChild(option);
                         leaseSuccessionOccurrenceSelect.appendChild(option2);
                         startAfterOccurrenceSelect.appendChild(option3);
+                        if (periodID.isLeasePeriod == true){
+                            let option = document.createElement("option");
+                            option.value = periodData.periodID;
+                            option.innerText = `1 ${periodData.name}`; 
+                            leaseOccurrenceSelect.appendChild(option);
+                        }
                     };
 
                     // 2.5 populate the feeName boxe

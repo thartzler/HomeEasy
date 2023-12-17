@@ -57,6 +57,9 @@ footer {
 .selected-nav-item,
 .selected-secondary-nav-item {
   background-color: #27ae60;
+  -webkit-border-radius: 7px;
+  -moz-border-radius: 7px;
+  border-radius: 7px;
 }
 .selected-nav-item a,
 .selected-secondary-nav-item a {

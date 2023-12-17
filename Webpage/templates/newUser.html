@@ -59,7 +59,7 @@
         if (mailformat.test(input.value)) {
             input.setAttribute("class","satisfiedInputField");    //The pop up alert for a valid email address
             // document.inquiryForm.getElementById("emailAddress").focus();
-            readyToSubmit()
+            // readyToSubmit()
             return true;
         }
         else if (input.value!="" || (input.value=="" && input.hasAttribute("required"))) {
@@ -70,7 +70,7 @@
         }
         else {
             input.setAttribute("class","inputField")
-            readyToSubmit()
+            // readyToSubmit()
             return true;
         }
     }
@@ -80,7 +80,7 @@
         if (/^[a-zA-Z0-9&+?_`~-]/.test(input.value)) {
             input.setAttribute("class","satisfiedInputField");    //The pop up alert for a valid email address
             // document.inquiryForm.getElementById("emailAddress").focus();
-            readyToSubmit()
+            // readyToSubmit()
             return true;
         }
         else if (input.value!="" || (input.value=="" && input.hasAttribute("required"))) {
@@ -92,17 +92,18 @@
         }
         else {
             input.setAttribute("class","inputField")
-            readyToSubmit()
+            // readyToSubmit()
             return true;
         }
     }
     function readyToSubmit() {
         for (const ele of document.getElementById("newUserSignup").querySelectorAll("[required]")) {
             if (!ele.reportValidity()) {
-                return;
+                return false;
             }
         }
-        document.getElementById("submitButton").disabled=false
+        return true;
+        // document.getElementById("submitButton").disabled=false
     }
     
     function checkPasswords(input) {
@@ -261,7 +262,7 @@
 
                         <div class="row">
                             <div class="col col-sm-5">
-                                <button class="nav-button" id="submitButton" disabled>Create</button>
+                                <button class="nav-button" id="submitButton">Create</button>
                             </div>
                             <div class="col col-sm-6">
                                 
@@ -295,6 +296,10 @@
                 async function submitForm(e, form) {
                     // 1. Prevent reloading the page
                     e.preventDefault();
+
+                    if (!readyToSubmit()){
+                        return
+                    }
                     // 2. Submit the form
                     // 2.1 User Interaction
                     const submitBtn = document.getElementById('submitButton');

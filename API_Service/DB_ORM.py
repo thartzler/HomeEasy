@@ -35,6 +35,7 @@ class feeType(db.Model):
     description =       db.Column(db.Text, nullable = False)
     defaultPrice =      db.Column(db.DECIMAL(8,2), nullable = True)
     defaultOccurrence = db.Column(db.Integer, db.ForeignKey('appOccurrences.occurrenceID'), nullable = True)
+    displayOrder =      db.Column(db.Integer, nullable = False, server_default = '99')
 
     feeTypeLeases =     db.relationship('leaseFee', back_populates='leaseFeeType')          #done
     feeTypeOccurrence = db.relationship('occurrence', back_populates='occurrenceFeeTypes')  #done
@@ -76,6 +77,7 @@ class paymentStatus(db.Model):
     statusID =      db.Column(db.Integer, primary_key=True, nullable = False, unique = True)
     statusName =    db.Column(db.VARCHAR(25), nullable = False)
     isCompleted =   db.Column(db.BINARY, nullable = False, server_default=bin(0))
+    statusIcon =    db.Column(db.VARCHAR(50), nullable = False)
 
     paymentsWithStatus = db.relationship('payment', back_populates='statusOfPayment')   #done
 
@@ -89,6 +91,7 @@ class period(db.Model):
     periodID =      db.Column(db.Integer, primary_key=True, nullable = False, unique = True)
     name =          db.Column(db.VARCHAR(20), nullable = False)
     abbreviation =  db.Column(db.VARCHAR(8), nullable = False)
+    isLeasePeriod = db.Column(db.BINARY, nullable = False, server_default=bin(0))
 
     # leasesWithPeriod = db.relationship('lease', back_populates = 'periodOfLease')           #done
     # leasesWithPeriodAfterInitialPeriod = db.relationship('lease', back_populates = 'periodOfLeaseAfterInitialPeriod') #done
@@ -192,7 +195,8 @@ class paymentItem(db.Model):
     paymentID =     db.Column(db.Integer, db.ForeignKey('userPayments.paymentID'), nullable = False)
     dueDate =       db.Column(db.Date, nullable = False)
     itemName =      db.Column(db.VARCHAR(50), nullable = False)
-    leaseFeeID =    db.Column(db.Integer, db.ForeignKey('userLeaseFees.leaseFeeID'), nullable = False)
+    leaseFeeID =    db.Column(db.Integer, db.ForeignKey('userLeaseFees.leaseFeeID'), nullable = True)
+    qty =           db.Column(db.Integer, nullable = False)
     amountPaid =    db.Column(db.Float, nullable = True)
     createUser =    db.Column(db.Integer, db.ForeignKey('userAccounts.userID'), nullable = False)
     createDate =    db.Column(db.DateTime, nullable = False)
@@ -209,16 +213,20 @@ class payment(db.Model):
     # Done
     __tablename__ = 'userPayments'
     paymentID =     db.Column(db.Integer, primary_key = True, nullable = False)
+    leaseID =       db.Column(db.Integer, db.ForeignKey("userLeases.leaseID"), nullable = False)
+    periodNo =      db.Column(db.Integer, nullable = False)
+    periodStartDate=db.Column(db.Date, nullable = False)
     dueDate =       db.Column(db.Date, nullable = False)
     paymentStatus = db.Column(db.Integer, db.ForeignKey("appPaymentStatus.statusID"), nullable = True)
     paymentMethod = db.Column(db.Integer, db.ForeignKey("appPaymentMethods.methodID"), nullable = True)
-    amountReceived =db.Column(db.Float, nullable = True)
-    dateReceived =  db.Column(db.Date, nullable = False)
+    amountReceived =db.Column(db.Float, nullable = False, server_default = "0")
+    dateReceived =  db.Column(db.Date, nullable = True)
     createUser =    db.Column(db.Integer, db.ForeignKey("userAccounts.userID"), nullable = False)
     createDate =    db.Column(db.DateTime, nullable = False)
 
     paymentCreator =  db.relationship('userAccount', back_populates='authoredPayment')      #done
     paymentItems =    db.relationship('paymentItem', back_populates='associatedPayment')    #done
+    paymentsLease =   db.relationship('lease', back_populates='leasePayments')  #done
     statusOfPayment = db.relationship('paymentStatus', back_populates='paymentsWithStatus') #done
     methodOfPayment = db.relationship('paymentMethod', back_populates='paymentsWithMethod') #done
 
@@ -306,6 +314,38 @@ class companyRole(db.Model):
     def __repr__(self) -> str:
         return "<companyRole(roleID = '%i', companyID = '%i', roleTypeID = '%i')>" %(self.roleID, self.userID, self.roleTypeID)
 
+class lease(db.Model):
+    # This is the database relationship object for records in the userLeases table
+    # Done
+    __tablename__ = 'userLeases'
+    leaseID =                   db.Column(db.Integer, primary_key= True, nullable = False)
+    propertyID =                db.Column(db.Integer, db.ForeignKey('userProperties.propertyID'), nullable = False)
+    leaseStatus =               db.Column(db.VARCHAR(25), nullable = True)
+    availableDate =             db.Column(db.Date, nullable = False)
+    moveInDate =                db.Column(db.Date, nullable = True)
+    terminationDate =           db.Column(db.Date, nullable = True)
+    lastPaidPeriodStartingDate= db.Column(db.Date, nullable = True)
+    lastPeriodRemainingBalance= db.Column(db.Float, nullable = False, server_default = '0')
+    leasePeriod =               db.Column(db.Integer, db.ForeignKey('appPeriods.periodID'), nullable = False)
+    leaseSuccessionPeriod =     db.Column(db.Integer, db.ForeignKey('appPeriods.periodID'), nullable = True)
+    securityDeposit =           db.Column(db.Float, nullable = False)
+    contractDocID =             db.Column(db.VARCHAR(50), nullable = True)
+    createUser =                db.Column(db.Integer, db.ForeignKey('userAccounts.userID'), nullable = False)
+    createDate =                db.Column(db.DateTime, nullable = False)
+
+    leasedProperty  = db.relationship('property', back_populates='propertyLeases')       #done
+    # leaseDependants = db.relationship('dependant', back_populates='dependantOnLease')   #missing - STRETCH
+    leasePeople     = db.relationship('leasePerson',back_populates = 'leasePersonIsOn') #done
+    leaseFees       = db.relationship('leaseFee', back_populates = 'FeeOnLease')        #done
+    leaseAuthor     = db.relationship('userAccount', back_populates = 'authoredLease')  #done
+    # applications    = db.relationship('application', back_populates='lease')            #missing - STRETCH
+    leasePayments =   db.relationship('payment', back_populates='paymentsLease')  #done
+    periodOfLease = db.relationship('period', foreign_keys=[leasePeriod])#back_populates = 'leasesWithPeriod')           #done
+    periodOfLeaseAfterInitialPeriod = db.relationship('period', foreign_keys=[leaseSuccessionPeriod])#back_populates = 'leasesWithPeriodAfterInitialPeriod') #done
+
+    def __repr__(self) -> None:
+        return "<lease(leaseID = '%r', property = '%s', status = '%s')>" %(self.leaseID, self.leasedProperty, self.leaseStatus)
+
 class property(db.Model):
     # This is the database relationship object for records in the userProperties table
     # Done
@@ -329,40 +369,21 @@ class property(db.Model):
     
     fullAddress = db.relationship('address', back_populates='propertyAddress')          #done
     propertyOwner = db.relationship('company', back_populates='ownedProperty')          #done
-    propertyLease = db.relationship('lease', back_populates='leasedProperty')           #done
+    propertyLeases = db.relationship('lease', back_populates='leasedProperty')           #done
     propertyAuthor = db.relationship('userAccount', back_populates='authoredProperty')  #done
+
+    def getActiveLease(self) -> lease:
+        for propertyLease in self.propertyLeases:
+            if propertyLease.terminationDate == None:
+                #if there is no termination date, then it's an active lease
+                return propertyLease
+        return None
+    
+    def getActiveLeaseID(self):
+        return self.getActiveLease().leaseID
 
     def __repr__(self) -> None:
         return "<property(propertyID = '%r', nickname = '%s', address = '%s')>" %(self.propertyID, self.nickname, self.fullAddress)
-
-class lease(db.Model):
-    # This is the database relationship object for records in the userLeases table
-    # Done
-    __tablename__ = 'userLeases'
-    leaseID =                   db.Column(db.Integer, primary_key= True, nullable = False)
-    propertyID =                db.Column(db.Integer, db.ForeignKey('userProperties.propertyID'), nullable = False)
-    leaseStatus =               db.Column(db.VARCHAR(25), nullable = True)
-    availableDate =             db.Column(db.Date, nullable = False)
-    moveInDate =                db.Column(db.Date, nullable = True)
-    terminationDate =           db.Column(db.Date, nullable = True)
-    leasePeriod =               db.Column(db.Integer, db.ForeignKey('appPeriods.periodID'), nullable = False)
-    leaseSuccessionPeriod =     db.Column(db.Integer, db.ForeignKey('appPeriods.periodID'), nullable = True)
-    securityDeposit =           db.Column(db.Float, nullable = False)
-    contractDocID =             db.Column(db.VARCHAR(50), nullable = True)
-    createUser =                db.Column(db.Integer, db.ForeignKey('userAccounts.userID'), nullable = False)
-    createDate =                db.Column(db.DateTime, nullable = False)
-
-    leasedProperty  = db.relationship('property', back_populates='propertyLease')       #done
-    # leaseDependants = db.relationship('dependant', back_populates='dependantOnLease')   #missing - STRETCH
-    leasePeople     = db.relationship('leasePerson',back_populates = 'leasePersonIsOn') #done
-    leaseFees       = db.relationship('leaseFee', back_populates = 'FeeOnLease')        #done
-    leaseAuthor     = db.relationship('userAccount', back_populates = 'authoredLease')  #done
-    # applications    = db.relationship('application', back_populates='lease')            #missing - STRETCH
-    periodOfLease = db.relationship('period', foreign_keys=[leasePeriod])#back_populates = 'leasesWithPeriod')           #done
-    periodOfLeaseAfterInitialPeriod = db.relationship('period', foreign_keys=[leaseSuccessionPeriod])#back_populates = 'leasesWithPeriodAfterInitialPeriod') #done
-
-    def __repr__(self) -> None:
-        return "<lease(leaseID = '%r', property = '%s', status = '%s')>" %(self.leaseID, self.leasedProperty, self.leaseStatus)
 
 class leasePerson(db.Model):
     # This is the database relationship object for records in the userLeasePeople table

@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, url_for, request, redirect
+from flask import Flask, request
 from flask_restful import Api, Resource
 import os
 import secrets
@@ -7,14 +7,14 @@ import urllib.parse
 from sqlalchemy.sql import exists
 
 from datetime import datetime, timedelta
-from DB_ORM import *#db, userSession, webSession, property
+from DB_ORM import *
 
 
 def __make_token():
     """
     Creates a cryptographically-secure, URL-safe db.String
     """
-    return secrets.token_urlsafe(37) 
+    return secrets.token_urlsafe(37)
 
 def isSessionValid(sessionID, ipAddress = None):
     """ 
@@ -64,6 +64,250 @@ def deleteUsersSessions(user):
     for session in userAccountSessions:
         db.session.delete(session)
     db.session.commit()
+
+def createNewAddress(houseNumber, streetName, city, state, zipCode, apptNo = None):
+    newAddress = address(
+        houseNumber = houseNumber,
+        streetName = streetName,
+        apptNo = apptNo,
+        city = city, 
+        state = state,
+        zipCode = zipCode
+    )
+    db.session.add(newAddress)
+    db.session.commit()
+
+    return newAddress.addressID
+
+def filterPhoneNumber(phoneNumber):
+    filteredPN = ""
+    for chara in str(phoneNumber):
+        if chara in ["0","1","2","3","4","5","6","7","8","9","x"]:
+            filteredPN += chara
+    return filteredPN
+
+def newPerson(firstName, lastName, phoneNumber, addressID = None, additionalDetails = None, createPerson = None):
+    
+    newPerson = person(
+        personID = None,
+        firstName = firstName,
+        lastName = lastName,
+        phoneNumber = filterPhoneNumber(phoneNumber),
+        addressID = addressID,
+        createdOn = datetime.utcnow()
+    )
+    db.session.add(newPerson)
+    db.session.commit()
+    # print ('additionalDetails: ', additionalDetails)
+    if additionalDetails:
+        for detailItem in additionalDetails:
+            detailOption = personDetailOption.query.filter_by(propertyName = detailItem).all()
+            print('Detail Option: ', detailOption)
+            if len(detailOption) == 0:
+                detailOption = personDetailOption(
+                    propertyName = str(detailItem)
+                )
+                db.session.add(detailOption)
+                db.session.commit()
+            else:
+                detailOption = detailOption[0]
+            if createPerson:
+                if hasattr(createPerson, 'personID'):
+                    createPersonID = createPerson.personID
+                elif hasattr(createPerson, 'userID'):
+                    createPersonID = createPerson.userID
+            else: createPersonID = newPerson.personID
+            newDetail = personDetail(
+                personID =      newPerson.personID,
+                detailID =      detailOption.detailID,
+                rev =           0,
+                propertyValue = additionalDetails[detailItem],
+                setDate =       datetime.utcnow(),
+                setPersonID =   createPersonID
+            )
+            db.session.add(newDetail)
+            db.session.commit()
+    return newPerson
+
+def getDateOnePeriodLater(periodBegin:datetime, period_abbreviation:str):
+    if periodBegin:
+        if period_abbreviation == 'wk':
+            tD = periodBegin + timedelta(weeks = 1)
+            tD = tD.strftime("%Y-%m-%d")
+        elif period_abbreviation == 'mo':
+            month = int(periodBegin.strftime('%m'))+1
+            year = int(periodBegin.strftime("%Y"))
+            if month >12:
+                month -= 12
+                year += 1
+            tD = str(year)+"-"+str(month)+periodBegin.strftime("-%d")
+        elif period_abbreviation == 'day':
+            tD = (periodBegin + timedelta(days = 1)).strftime("%Y-%m-%d")
+        elif period_abbreviation == 'yr':
+            tD = str(int(periodBegin.strftime("%Y"))+1)+periodBegin.strftime("-%m-%d")
+        else:
+            return "unknown:abbr"
+    else:
+        return "unknown:begin"
+    return datetime.strptime(tD, "%Y-%m-%d").date()
+
+def getDateOnePeriodEarlier(periodBegin:datetime, period_abbreviation:str):
+    if periodBegin:
+        if period_abbreviation == 'wk':
+            tD = periodBegin - timedelta(weeks = 1)
+            tD = tD.strftime("%Y-%m-%d")
+        elif period_abbreviation == 'mo':
+            month = int(periodBegin.strftime('%m'))-1
+            year = int(periodBegin.strftime("%Y"))
+            if month == 0:
+                month += 12
+                year -= 1
+            tD = str(year)+"-"+str(month)+periodBegin.strftime("-%d")
+        elif period_abbreviation == 'day':
+            tD = (periodBegin - timedelta(days = 1)).strftime("%Y-%m-%d")
+        elif period_abbreviation == 'yr':
+            tD = str(int(periodBegin.strftime("%Y"))-1)+periodBegin.strftime("-%m-%d")
+        else:
+            return "unknown:abbr"
+    else:
+        return "unknown:begin"
+    return datetime.strptime(tD, "%Y-%m-%d").date()
+
+def getBasePeriodPayment(leaseID: int):
+  
+    x = "No Lease"
+    paymentBreakdown = []
+    rentPeriodAbbr = 'mo'
+
+    if type(leaseID) == int:
+        x = 0
+        leaseFees = leaseFee.query.filter_by(leaseID = leaseID).all()
+        for leaseFee_i in leaseFees:
+            oPN = leaseFee_i.leaseFeeOccurrence.occurrencePeriod.abbreviation
+            if leaseFee_i.startAfterLength == 0 and oPN != "occr":
+                paymentBreakdown.append({
+                    "feeName": leaseFee_i.feeName,
+                    'feeAmount': leaseFee_i.feeAmount
+                })
+                x += float(leaseFee_i.feeAmount)
+                if leaseFee_i.feeName.lower() == 'rent':
+                    rentPeriodAbbr = oPN
+
+    return {'leaseID': leaseID,
+            'payentBreakdown':paymentBreakdown,
+            'paymentAmount': x,
+            'rentPeriod': rentPeriodAbbr}
+
+def calculatePayment(leaseID:int, payDate:datetime):
+    now = datetime.utcnow()
+    return "payment"
+
+def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
+    # this returns a list of all the given property's payment periods within the given time frame
+    # payment period objects include paymentID, status, and amount
+    returnData = []
+
+    basePaymentInfo = getBasePeriodPayment(prprty.getActiveLeaseID())
+    # 0. Get basic info for the current lease
+    # 1. fills in all the payments in the date range (it may not be homogenious, so keep track and fill in with blanks as needed)
+    # 2. if there are periods after the latest payment record and before the endDate, fill them with basePayment values
+    # 3. if there are periods before the oldest payment record for the lease (maybe a prior lease), recurse through getPriorPeriodPayment() and append to front of list
+
+    # Step 1
+    paymentsWithinDateRange = payment.query.filter(payment.periodStartDate>=sDate, payment.periodStartDate<=eDate).join(payment.paymentsLease).filter(lease.propertyID == prprty.propertyID).order_by(payment.paymentID.asc()).all()
+    firstPayment = None
+    prevPayDate = None
+    leasePeriod = basePaymentInfo['rentPeriod']
+    prevLeaseID = None
+    print ("PaymentsWithinDateRange: ", paymentsWithinDateRange)
+    missingIcon = paymentStatus.query.filter_by(statusName="missing").one().statusIcon
+
+    for paymentWithinDateRange in paymentsWithinDateRange:
+        pWDR = paymentWithinDateRange
+        # save the first payment for step 3
+        thisPayDate = pWDR.periodStartDate
+        print ("TPD: ",thisPayDate)
+        if firstPayment == None:
+            firstPayment = pWDR
+            nextPayDate = thisPayDate
+        
+        # Check for missing payments
+        while thisPayDate> nextPayDate:
+            # apparently it's skipped one.
+            if pWDR.leaseID == prevLeaseID:
+                amt = 0.0
+            else:
+                amt = "No Lease"
+            returnData.append({
+                'paymentID': 'Skipped',
+                'periodLength': leasePeriod,
+                'status': missingIcon,
+                'amount': amt
+            })
+            nextPayDate = getDateOnePeriodLater(nextPayDate, leasePeriod)
+            print("NPD: ",nextPayDate)
+
+        # check if the current lease changed
+        if pWDR.leaseID != prevLeaseID:
+            # There's a new lease
+            leasePeriod = getBasePeriodPayment(pWDR.leaseID)
+            baseAmount = leasePeriod['paymentAmount']
+            leasePeriod = leasePeriod['rentPeriod']
+            prevLeaseID = pWDR.leaseID
+
+        #recording the payment information (Starts at the oldest and ends with the newest) 
+        amount = float(pWDR.amountReceived)
+        if pWDR.paymentID == 1:
+            #if the payment is 'upcoming'
+            amount = baseAmount
+        returnData.append({
+            'paymentID': pWDR.paymentID,
+            'periodLength': leasePeriod,
+            'status': pWDR.statusOfPayment.statusIcon,
+            'amount': float(amount)
+        })
+        nextPayDate = getDateOnePeriodLater(thisPayDate, leasePeriod)
+        print("NPD: ",nextPayDate)
+    
+    if firstPayment == None:
+        # This means there aren't any pWDR: (essentially no leases/payments during that period)
+        # assume month period and keep adding them until it gets up to assumed date range amount needed
+        while timedelta(days = len(returnData)*30.75) < (eDate-sDate):
+            returnData = [{
+                'paymentID': '',
+                'periodLength': 'mo',
+                'status': missingIcon,
+                'amount': 'No Lease'
+            }] + returnData
+    else:
+        # Step 2
+        # let's go forward until we hit the endDate
+        # leasePeriod should be defined currently as the lastPayment's lease Period
+        while nextPayDate <= eDate.date():
+            returnData.append({
+                'paymentID': '',
+                'periodLength': leasePeriod,
+                'status': '',
+                'amount': baseAmount
+            })
+            nextPayDate = getDateOnePeriodLater(nextPayDate, leasePeriod)
+
+        
+        # Step 3
+        # let's go back until we hit the startDate
+        # FUTURE: technically should redefine leasePeriod as firstPayment's lease Period
+        prevPayDate = getDateOnePeriodEarlier(firstPayment.periodStartDate, leasePeriod)
+        while prevPayDate >= sDate.date():
+            returnData = [{
+                'paymentID': '',
+                'periodLength': leasePeriod,
+                'status': missingIcon,
+                'amount': 'No Lease'
+            }] + returnData
+            prevPayDate = getDateOnePeriodEarlier(prevPayDate, leasePeriod)
+
+
+    return returnData
 
 def newSession(username, password, ipAddress):
     """
@@ -123,7 +367,7 @@ def newLandlordAccount(jsonData):
     __newUser = newPerson(
         firstName = jsonData['firstName'], 
         lastName = jsonData['lastName'], 
-        phoneNumber = jsonData['phoneNumber'], 
+        phoneNumber = filterPhoneNumber(jsonData['phoneNumber']), 
         addressID = addressID,
         additionalDetails=additionalDetails,
         createPerson=None
@@ -143,7 +387,7 @@ def newLandlordAccount(jsonData):
     newCompany = company(
         companyID = None,
         companyName = jsonData['companyName'],
-        phoneNumber = jsonData['companyPhone'],
+        phoneNumber = filterPhoneNumber(jsonData['companyPhone']),
         mailingAddress = addressID,
         billingAddress = addressID,
         emailInvoiceAddress = newUserAccount.emailAddress,
@@ -170,6 +414,93 @@ def newLandlordAccount(jsonData):
     # except Exception as e:
     #     return False, e
 
+def getAdminRentRollData(company, session, reqArgs, startDate, endDate):
+    returnData = []
+    if "propertyID" in reqArgs:
+        properties = property.query.filter_by(propertyID = reqArgs["propertyID"],companyID = company.companyID).all()
+    else:
+        properties = property.query.filter_by(companyID = company.companyID).all()
+
+    for prprty in properties:
+        hasActiveLease = prprty.getActiveLease()
+        if hasActiveLease:
+            lease_i = hasActiveLease
+            LPList = []
+            for LPi in lease_i.leasePeople:
+                if LPi.role == 'tenant':
+                    LPList.append(LPi.leasePerson.firstName + " " + LPi.leasePerson.lastName)
+            tenants = ", ".join(LPList)
+        else: 
+            tenants = "-- EMPTY --"
+
+        
+        propertyData = {
+            'propertyID':       prprty.propertyID,
+            'nickname':         prprty.nickname,
+            'address':          prprty.fullAddress.getHouseNStreet(),
+            'tenants':          tenants,
+            'paymentStatuses':  getPaymentStatus(prprty, sDate = startDate, eDate = endDate),
+        }
+
+
+        returnData.append(propertyData)
+
+    return returnData    
+    leases = lease.query.filter(lease.terminationDate == None)
+    leaseReturnList = []
+    for lease_i in leases:
+        fees = []
+        monthlyRent = 'n/a'
+        leaseFees = leaseFee.query.filter_by(leaseID = lease_i.leaseID)
+        for leaseFee_i in leaseFees:
+            if leaseFee_i.feeName == 'Rent':
+                monthlyRent = leaseFee_i.feeAmount
+            else:
+                fees.append("%s: %.2f/%s"%(leaseFee_i.feeName,leaseFee_i.feeAmount,leaseFee_i.leaseFeeOccurrence.occurrencePeriod.abbreviation))
+        
+        leasePeriodAbbr = lease_i.periodOfLease.abbreviation
+        if lease_i.moveInDate:
+            if leasePeriodAbbr == 'wk':
+                tD = lease_i.moveInDate + timedelta(weeks = 1)
+                tD = tD.strftime("%Y-%m-%d")
+            elif leasePeriodAbbr == 'mo':
+                month = int(lease_i.moveInDate.strftime('%m'))+1
+                year = int(lease_i.moveInDate.strftime("%Y"))
+                if month >12:
+                    month -= 12
+                    year += 1
+                tD = str(year)+"-"+str(month)+lease_i.moveInDate.strftime("-%d")
+            elif leasePeriodAbbr == 'day':
+                tD = (lease_i.moveInDate + timedelta(days = 1)).strftime("%Y-%m-%d")
+            elif leasePeriodAbbr == 'yr':
+                tD = str(int(lease_i.moveInDate.strftime("%Y"))+1)+lease_i.moveInDate.strftime("-%m-%d")
+            else:
+                tD = "n/a"
+        else:
+            tD = "n/a"
+        
+        LPList = []
+        for LPi in lease_i.leasePeople:
+            if LPi.role == 'tenant':
+                LPList.append(LPi.leasePerson.firstName + " " + LPi.leasePerson.lastName)
+        LnP = ", ".join(LPList)
+
+        leasData = {
+            'leaseID': lease_i.leaseID,
+            'nickname': lease_i.leasedProperty.nickname,
+            'address': lease_i.leasedProperty.fullAddress.getHouseNStreet(),
+            'tenants': LnP,
+            'monthlyRent': monthlyRent,
+            'monthlyFees': "<br/>".join(fees),
+            'leasePeriod': "1 "+ str(lease_i.periodOfLease.abbreviation),
+            'moveInDate': lease_i.moveInDate.strftime("%Y-%m-%d"),
+            'endDate': tD
+        }
+        leaseReturnList.append(leasData)
+
+
+
+
 def createLease(jsonData):
 
     # 1. make lease
@@ -187,8 +518,12 @@ def createLease(jsonData):
             return False, "Failed to create Tenant Account: Missing %s in jsonData"%attribute
     if 'moveInDate' in jsonData:
         mID = datetime.strptime(jsonData['moveInDate'],'%Y-%m-%d')
+        newtime = jsonData['moveInDate'][:-2]+"01"
+        #FUTURE: Setup this to find the actual first period start date
+        psd = datetime.strptime(newtime, "%Y-%m-%d")
     else:
         mID = None
+        psd = None
 
     if 'terminationDate' not in jsonData:
         tD = None
@@ -201,6 +536,8 @@ def createLease(jsonData):
         availableDate = datetime.strptime(jsonData['availableDate'],'%Y-%m-%d'), 
         moveInDate = mID,
         terminationDate = tD,
+        lastPaidPeriodStartingDate = None,
+        lastPeriodRemainingBalance = 0.0,
         leasePeriod=int(jsonData['leasePeriod']),
         leaseSuccessionPeriod=int(jsonData['leaseSuccessionPeriod']),
         securityDeposit = '',#float(jsonData['securityDeposit']),
@@ -212,6 +549,22 @@ def createLease(jsonData):
     db.session.add(__newLease)
     db.session.commit()
     createdDBItems.append(__newLease)
+
+    __newPament = payment(
+        leaseID = int(__newLease.leaseID), 
+        periodNo = 0, 
+        periodStartDate = psd, 
+        dueDate = mID,
+        paymentStatus = 1,
+        paymentMethod = None,
+        amountReceived = 0.0,
+        createUser = int(jsonData['createUser']),
+        createDate = datetime.utcnow()
+    )
+
+    db.session.add(__newPament)
+    db.session.commit()
+    createdDBItems.append(__newPament)
 
     for person in jsonData['people']:
         peopleRequirements = ['personID', 'role']
@@ -266,6 +619,23 @@ def createLease(jsonData):
 
         db.session.add(__newLeaseFee)
         createdDBItems.append(__newLeaseFee)
+        
+        # __newPaymentItem = paymentItem(
+        #     leaseID = __newLease.leaseID,
+        #     feeID = int(fee['feeID']),
+        #     feeName = feeName,
+        #     feeAmount = float(fee['feeAmount']),
+        #     occurrence = int(fee['occurrence']),
+        #     startAfterLength = int(fee['startAfterLength']),
+        #     startAfterPeriod = int(fee['startAfterPeriod']),
+        #     createUser = fee['createUser'],
+        #     createDate = datetime.utcnow(),
+        # )
+
+        # db.session.add(__newLeaseFee)
+        # createdDBItems.append(__newLeaseFee)
+
+
     db.session.commit()
 
     return True, __newLease
@@ -288,7 +658,7 @@ def createTenant(jsonData):
     __newUser = newPerson(
         firstName = jsonData['firstName'], 
         lastName = jsonData['lastName'], 
-        phoneNumber = jsonData['phoneNumber'], 
+        phoneNumber = filterPhoneNumber(jsonData['phoneNumber']), 
         addressID = None,
         additionalDetails=jsonData['additionalDetails'],
         createPerson=jsonData['createdBy']
@@ -308,7 +678,6 @@ def createTenant(jsonData):
     return True, newUserAccount
     # except Exception as e:
     #     return False, e
-
 
 def createProperty(jsonData):
 
@@ -334,89 +703,6 @@ def createProperty(jsonData):
     return newProperty.propertyID
 
 
-def createNewAddress(houseNumber, streetName, city, state, zipCode, apptNo = None):
-    newAddress = address(
-        houseNumber = houseNumber,
-        streetName = streetName,
-        apptNo = apptNo,
-        city = city, 
-        state = state,
-        zipCode = zipCode
-    )
-    db.session.add(newAddress)
-    db.session.commit()
-
-    return newAddress.addressID
-
-
-def newPerson(firstName, lastName, phoneNumber, addressID = None, additionalDetails = None, createPerson = None):
-    
-    newPerson = person(
-        personID = None,
-        firstName = firstName,
-        lastName = lastName,
-        phoneNumber = phoneNumber,
-        addressID = addressID,
-        createdOn = datetime.utcnow()
-    )
-    db.session.add(newPerson)
-    db.session.commit()
-    # print ('additionalDetails: ', additionalDetails)
-    if additionalDetails:
-        for detailItem in additionalDetails:
-            detailOption = personDetailOption.query.filter_by(propertyName = detailItem).all()
-            print('Detail Option: ', detailOption)
-            if len(detailOption) == 0:
-                detailOption = personDetailOption(
-                    propertyName = str(detailItem)
-                )
-                db.session.add(detailOption)
-                db.session.commit()
-            else:
-                detailOption = detailOption[0]
-            if createPerson:
-                if hasattr(createPerson, 'personID'):
-                    createPersonID = createPerson.personID
-                elif hasattr(createPerson, 'userID'):
-                    createPersonID = createPerson.userID
-            else: createPersonID = newPerson.personID
-            newDetail = personDetail(
-                personID =      newPerson.personID,
-                detailID =      detailOption.detailID,
-                rev =           0,
-                propertyValue = additionalDetails[detailItem],
-                setDate =       datetime.utcnow(),
-                setPersonID =   createPersonID
-            )
-            db.session.add(newDetail)
-            db.session.commit()
-    return newPerson
-
-def getUserFromSessionID(requestHeader, ipAddress = None):
-    
-    if 'userSessionID' in requestHeader:
-        isValid, sessionInfo = isSessionValid(requestHeader['userSessionID'], ipAddress)
-        
-        if isValid:
-            #Now check if the person is authorized
-            print(sessionInfo.sessionUser)
-            # rows=[]
-            # appPaymentStatuses = property.query.filter_by().all()
-            # for status in appPaymentStatuses:
-            #     rows.append({
-            #         'statusID':    status.statusID,
-            #         'statusName':  status.statusName,
-            #         'isCompleted': status.isCompleted!=b''#, 'big')
-            #     })
-            return True, sessionInfo.sessionUser
-        return False, {"response": 401,
-                "message": "Unauthorized: %s"%(sessionInfo)}
-    else:
-        return False, {"response": 401,
-                "message": "Unauthorized: You must be logged in to view this request"}
-
-
-# connection_string = os.environ["AZURE_SQL_CONNECTIONSTRING"]
 
 # Configure Database URI:
 params = urllib.parse.quote_plus(os.environ["AZURE_SQL_CONNECTIONSTRING"])
@@ -508,6 +794,8 @@ class registerNewUser(Resource):
                     accountJsonData['addressDetails'] = requestData[dataItem]
                 elif dataItem == 'password':
                     accountJsonData['passHash'] = bcrypt.hashpw(requestData[dataItem].encode('utf-8'),bcrypt.gensalt())
+                elif dataItem == 'emailAddress':
+                    accountJsonData['emailAddress'] = str(requestData[dataItem]).lower()
                 else:
                     accountJsonData[dataItem] = requestData[dataItem]
             
@@ -523,44 +811,110 @@ class registerNewUser(Resource):
             print ( dir(result))
             return {'status': 400, 'message':'Failed to save','error':str(result),'traceback':result.args,'redirectURL':'#'}, 400
 
-class rentRoll(Resource):
-
-    def get(self):
-
-        gotUser, userResponse = getUserFromSessionID(request.headers, request.remote_addr)
-        
-        if gotUser:
-            print (userResponse)
-            data = {
-                'name': "Hello",
-                'id': "World"
-            }
-            return (data)
-        else:
-            return userResponse, userResponse["response"]
-
 class getRentRoll(Resource):
     
     def get(self):
-        if 'userSessionID' in request.cookies:
-            isValid, sessionInfo = isSessionValid(request.cookies['userSessionID'])
-            
-            if isValid:
-                #Now check if the person is authorized
-                print(sessionInfo.sessionUser)
-                rows=[]
-                appPaymentStatuses = property.query.filter_by().all()
-                for status in appPaymentStatuses:
-                    rows.append({
-                        'statusID':    status.statusID,
-                        'statusName':  status.statusName,
-                        'isCompleted': status.isCompleted!=b''#, 'big')
-                    })
-                return rows
-            return 'Unauthorized: %s'%(sessionInfo), 401
-        else:
-            return 'Unauthorized: You must be logged in to view this request', 401
+        # 'GET' request comes directly from the webpage on a client's browser.
+        # print(request.args)
 
+        if 'sessionID' in request.args:
+            ipAddress = request.remote_addr
+            # print (ipAddress)
+            # ipAddress = request.headers['ipAddress']
+            isValid, sessionOrComment = isSessionValid(request.args['sessionID'], ipAddress=ipAddress)
+            if isValid:
+                sessn = sessionOrComment
+                accntType = sessn.sessionUser.accountAuthority.typeName
+
+                # print(sessn.sessionUser.accountAuthority.typeName)
+                if accntType in ['landlord'] or 'admin' in accntType.lower():
+                    #Now check if the person is authorized
+                    if 'viewStartDate' in request.args and 'viewEndDate' in request.args:
+                        try:
+                            sDate = datetime.strptime(request.args['viewStartDate'], "%Y-%m-%d")
+                            eDate = datetime.strptime(request.args['viewEndDate'], "%Y-%m-%d")
+                            if (eDate-sDate)>timedelta(days=366):
+                                return {'status': 401, 'message': 'Error: Date range should be less than 1 year.'}, 401
+                        except:
+                            return {'status': 401, 'message': 'Incorrect Date Format: viewStartDate and viewEndDate use yyyy-mm-dd format'}, 401
+                    else:
+                        return {'status': 401, 'message': 'Missing Input: You must specify the viewStartDate and viewEndDate'}, 401
+                    cRPs = sessn.sessionUser.companyRolePerson
+                    if len(cRPs) >0:
+                        returnData = {'status': 200, 'data': []}
+                        for cRP in cRPs:
+                            cmpny = cRP.associatedCompany
+                            print ("company(s): ", cmpny)
+                            returnData['data'].append({
+                                'companyID':cmpny.companyID,
+                                'companyName':cmpny.companyName,
+                                'rentRoll': getAdminRentRollData(company = cmpny, session = sessn, reqArgs = request.args, startDate = sDate, endDate = eDate)
+                            })
+                        
+                        return returnData, returnData['status']
+                    else:
+                        sessionOrComment = "Error with your account"
+                elif accntType == 'tenant':
+                    # FUTURE: Tenant user get /rent function goes here
+                    data = {
+                        'status': 200,
+                        'name': "Hello",
+                        'id': "World"
+                    }
+                    return data, data['status']
+                else:
+                    sessionOrComment = "Insufficient Authority to view this data"
+            return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
+        else:
+            return {'status': 401, 'message': 'Unauthorized: You must be logged in to view this request'}, 401
+
+    # def post(self):
+    #     if 'sessionID' in request.cookies:
+    #         isValid, sessionInfo = isSessionValid(request.cookies['sessionID'])
+            
+    #         if isValid:
+    #             #Now check if the person is authorized
+    #             print(sessionInfo.sessionUser)
+    #             rows=[]
+    #             appPaymentStatuses = paymentStatus.query.filter_by().all()
+    #             for status in appPaymentStatuses:
+    #                 rows.append({
+    #                     'statusID':    status.statusID,
+    #                     'statusName':  status.statusName,
+    #                     'isCompleted': status.isCompleted!=b''#, 'big')
+    #                 })
+    #             return {'response': 200, 'data': rows}, 200
+    #         return {'status': 401, 'message': 'Unauthorized: %s'%(sessionInfo)}, 401
+    #     else:
+    #         return {'message': 'Unauthorized: You must be logged in to view this request'}, 401
+
+class paymentOptions(Resource):
+
+    def get(self):
+        # 'GET' request comes directly from the webpage on a client's browser. - No Authentication required here
+        returnData = {'status': 200, 
+                      'paymentStatus': [], #[{'statusID': int, 'statusName': str}], 
+                      'paymentMethods': [], #[{'methodID': int, 'methodName': str}], 
+                    }
+        
+        payStatuses = paymentStatus.query.filter().all()
+        payStatusList = []
+        for payStatus in payStatuses:
+            returnData['paymentStatus'].append({
+                'statusID': payStatus.statusID,
+                'statusName': payStatus.statusName
+            })
+
+        paymentMethods = paymentMethod.query.filter().all()
+        paymentMethodList = []
+        for paymentMethod_i in paymentMethods:
+            returnData['paymentMethods'].append({
+                'methodID': paymentMethod_i.methodID,
+                'methodName': paymentMethod_i.methodName
+            })
+
+        return returnData, returnData['status']
+        
 
 class adminLeases(Resource):
 
@@ -585,7 +939,7 @@ class adminLeases(Resource):
                         cmpny = cRP[0].associatedCompany
                         print ("company(s): ", cmpny)
 
-                        leases = lease.query.filter(lease.terminationDate == None)
+                        leases = lease.query.filter(lease.terminationDate == None).join(lease.leasedProperty).filter(property.companyID == cmpny.companyID).all()
                         leaseReturnList = []
                         for lease_i in leases:
                             fees = []
@@ -596,27 +950,6 @@ class adminLeases(Resource):
                                     monthlyRent = leaseFee_i.feeAmount
                                 else:
                                     fees.append("%s: %.2f/%s"%(leaseFee_i.feeName,leaseFee_i.feeAmount,leaseFee_i.leaseFeeOccurrence.occurrencePeriod.abbreviation))
-                            
-                            leasePeriodAbbr = lease_i.periodOfLease.abbreviation
-                            if lease_i.moveInDate:
-                                if leasePeriodAbbr == 'wk':
-                                    tD = lease_i.moveInDate + timedelta(weeks = 1)
-                                    tD = tD.strftime("%Y-%m-%d")
-                                elif leasePeriodAbbr == 'mo':
-                                    month = int(lease_i.moveInDate.strftime('%m'))+1
-                                    year = int(lease_i.moveInDate.strftime("%Y"))
-                                    if month >12:
-                                        month -= 12
-                                        year += 1
-                                    tD = str(year)+"-"+str(month)+lease_i.moveInDate.strftime("-%d")
-                                elif leasePeriodAbbr == 'day':
-                                    tD = (lease_i.moveInDate + timedelta(days = 1)).strftime("%Y-%m-%d")
-                                elif leasePeriodAbbr == 'yr':
-                                    tD = str(int(lease_i.moveInDate.strftime("%Y"))+1)+lease_i.moveInDate.strftime("-%m-%d")
-                                else:
-                                    tD = "n/a"
-                            else:
-                                tD = "n/a"
                             
                             LPList = []
                             for LPi in lease_i.leasePeople:
@@ -633,7 +966,7 @@ class adminLeases(Resource):
                                 'monthlyFees': "<br/>".join(fees),
                                 'leasePeriod': "1 "+ str(lease_i.periodOfLease.abbreviation),
                                 'moveInDate': lease_i.moveInDate.strftime("%Y-%m-%d"),
-                                'endDate': tD
+                                'endDate': getDateOnePeriodLater(lease_i.moveInDate, lease_i.periodOfLease.abbreviation)
                             }
                             leaseReturnList.append(leasData)
 
@@ -655,7 +988,7 @@ class adminLeases(Resource):
 
         leaseJsonData = {}
         requiredItems = ['sessionID', 'ipAddress', 'propertyID', 'people', 'leaseStatus', 
-                         'availableDate', 'leasePeriod', 'leaseSuccessionPeriod',
+                         'availableDate', 'moveInDate', 'leasePeriod', 'leaseSuccessionPeriod',
                          'fees']
         feeRequirements = ['feeID', 'feeAmount','occurrence','startAfterLength','startAfterPeriod']
         peopleRequirements = ['personID', 'role']
@@ -722,9 +1055,7 @@ class adminLeases(Resource):
         return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
 
 
-
 class leaseOptions(Resource):
-
     def get(self):
         # 'GET' request comes directly from the webpage on a client's browser for creating leases.
         if 'sessionID' in request.args:
@@ -774,9 +1105,8 @@ class leaseOptions(Resource):
                                 'emailAddress': person_i.personsAccount[0].emailAddress,
                             }
                             returnData['people'].append(data)
-                        
                         # Get the list of properties without active leases
-                        unrentedProperties = property.query.filter_by(companyID = cmpny.companyID).join(property.propertyLease, isouter=True).filter(lease.availableDate == None,lease.terminationDate == None).all()
+                        unrentedProperties = property.query.filter_by(companyID = cmpny.companyID).join(property.propertyLeases, isouter=True).filter(lease.availableDate == None,lease.terminationDate == None).all()
                         for unrentedProperty in unrentedProperties:
                             data = {
                                 'propertyID': unrentedProperty.propertyID,
@@ -784,8 +1114,7 @@ class leaseOptions(Resource):
                                 'address': unrentedProperty.fullAddress.getHouseNStreet()
                             }
                             returnData['properties'].append(data)
-
-                        appFeeTypes = feeType.query.filter_by().all()
+                        appFeeTypes = feeType.query.filter_by().sort_by(feeType.displayOrder.asc()).all()
                         for appFeeType in appFeeTypes:
                             data = {
                                 'feeID': appFeeType.feeID, 
@@ -795,7 +1124,6 @@ class leaseOptions(Resource):
                                 'defaultOccurrenceID': appFeeType.defaultOccurrence
                                 }
                             returnData['feeTypes'].append(data)
-
                         appOccurrences = occurrence.query.filter_by().all()
                         for appOccurrence in appOccurrences:
                             if appOccurrence.occurrence == 1:
@@ -808,15 +1136,15 @@ class leaseOptions(Resource):
                                 'name': occurrName,
                                 }
                             returnData['occurrences'].append(data) 
-
                         appPeriods = period.query.filter_by().all()
                         for appPeriod in appPeriods:
                             data = {
                                 'periodID': appPeriod.periodID, 
                                 'name': appPeriod.name,
+                                'isLeasePeriod': appPeriod.isLeasePeriod!=b''
                                 }
                             returnData['periods'].append(data) 
-
+                        # print ("ReturnData: ",returnData)
                         return returnData, returnData['status']
                     else:
                         sessionOrComment = "Error with your account"
@@ -825,7 +1153,6 @@ class leaseOptions(Resource):
             return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
         else:
             return {'status': 401, 'message': 'Unauthorized: You must be logged in to view this request'}, 401
-
 
 
 class adminPeople(Resource):
@@ -958,7 +1285,6 @@ class adminPeople(Resource):
         return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
 
 
-
 class adminProperties(Resource):
 
     def get(self):
@@ -1079,16 +1405,15 @@ class adminProperties(Resource):
                 return {'status': 403, 'message': 'Forbidden: Insufficient authority to add a property'}, 403
         return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
 
-    
-
 
 api.add_resource(getAccountType, '/getAuthority')
 api.add_resource(registerNewUser, '/newLandlord')
 api.add_resource(createSessionID, '/createSessionID')
 
 # Rent Page
-api.add_resource(rentRoll, '/rent')
-api.add_resource(getRentRoll, '/admin/rent/roll')
+api.add_resource(getRentRoll, '/rent')
+# api.add_resource(userPayment, '/payment')
+api.add_resource(paymentOptions, '/paymentOptions')
 
 # Leases Page
 api.add_resource(adminLeases, '/admin/leases')
