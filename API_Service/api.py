@@ -261,7 +261,7 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
         if pWDR.paymentID == 1:
             #if the payment is 'upcoming'
             amount = baseAmount
-        comment = "{} payment of ${0:,.2f}".format(pWDR.statusOfPayment.statusName.capitalize(), float(amount))
+        comment = str(pWDR.statusOfPayment.statusName).capitalize()+" payment of ${0:,.2f}".format(float(amount))
         if pWDR.dateReceived:
             comment += " on {}".format(pWDR.dateReceived.strftime("%b %-d, %Y"))
         comment += "<br/><br/> Click to Edit"

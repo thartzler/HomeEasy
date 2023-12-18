@@ -187,6 +187,8 @@
                                     newCell2.innerText = `$ ${statuses.amount}`
                                 }
                                 newCell2.classList.add("chartCell")
+                                newCell2.title = statuses.message
+
                                 if (statuses.paymentID) {
                                     newCell2.setAttribute('onclick', `showPayment(${statuses.paymentID})`)
                                 }

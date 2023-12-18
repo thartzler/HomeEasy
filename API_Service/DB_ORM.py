@@ -221,7 +221,7 @@ class payment(db.Model):
     paymentMethod = db.Column(db.Integer, db.ForeignKey("appPaymentMethods.methodID"), nullable = True)
     amountReceived =db.Column(db.Float, nullable = False, server_default = "0")
     dateReceived =  db.Column(db.Date, nullable = True)
-    comment =       db.Column(db.VARCHAR(120), nullable = True)
+    comments =      db.Column(db.VARCHAR(120), nullable = True)
     createUser =    db.Column(db.Integer, db.ForeignKey("userAccounts.userID"), nullable = False)
     createDate =    db.Column(db.DateTime, nullable = False)
 
