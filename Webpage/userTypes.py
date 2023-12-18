@@ -3,7 +3,7 @@ from flask import request, make_response, render_template
 import requests, json
 
 
-from wtforms import Form, SelectField, StringField, validators, DateField, IntegerField, DecimalField, PasswordField
+from wtforms import Form, SelectField, StringField, validators, DateField, IntegerField, TextAreaField, DecimalField, PasswordField
 
 def roundToHalf(value):
     value = value-0.5
@@ -32,29 +32,34 @@ class newUserForm(Form):
 
 
 
-class newLeaseForm(Form):
-
-    # def __init__(self, sessionID:str, formdata: _MultiDictLike | None = None, obj: object | None = None, prefix: str = "", data: Mapping[str, Any] | None = None, meta: Mapping[str, Any] | None = None, *, extra_filters: Mapping[str, Sequence[Any]] | None = None, **kwargs: object) -> None:
-    #     super().__init__(formdata, obj, prefix, data, meta, extra_filters=extra_filters, **kwargs)
+class newPaymentForm(Form):
     
-    # # 1: Get the comboBox Option data from the API
-    # print (args['sessionID'])
+    paymentItemID = StringField('Payment Item ID')
+    paymentItemDate= DateField('Date')
+    paymentItemName= StringField('Receipt Item*', [validators.DataRequired(),validators.Length(max=50)])
+    paymentItemRate = StringField('Rate*', [validators.DataRequired()])
+    paymentItemQty = StringField('Qty*', [validators.DataRequired()])
+    paymentItemExpense = DecimalField('Amount Due*', [validators.DataRequired(), validators.NumberRange(min=0)])
+    paymentItemCredit = DecimalField('Amount Paid', [validators.NumberRange(min=0)])
+    leaseFeeID = IntegerField('leaseFeeID', [validators.DataRequired()])
+    paymentStatus = SelectField('Payment Status*',[validators.DataRequired()])
+    paymentMethod = SelectField('Payment Method*',[validators.DataRequired()])
+    paymentAmount = DecimalField('Amount Received*', [validators.DataRequired(), validators.NumberRange(min=0)])
+    paymentDate =   DateField('Date Received*', [validators.DataRequired()])
+    comments = TextAreaField("Comments*",[validators.DataRequired(), validators.Length(max=120)])
+    
 
-    # 2: setup the comboBoxes
+class newLeaseForm(Form):
     property= SelectField('Property*',[validators.DataRequired(), validators.Length(max=50)])
     tenant= SelectField('Tenant(s) on lease*', [validators.DataRequired()])
-    
     availableDate= DateField('Avail. Date*', [validators.DataRequired()])
     moveInDate= DateField('Move-in Date*', [validators.DataRequired()])
     terminateDate= DateField('Termination Date')
-    
     leaseStatus= StringField('Lease Status*', [validators.DataRequired(),validators.Length(max=50)])
-    
     leasePeriod= SelectField('Lease Term*', [validators.DataRequired()])
     leaseSuccessionPeriod= SelectField('New Term After Initial Lease Term*', [validators.DataRequired()])
     # monthlyRent= IntegerField('Monthly Rent*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
     # securityDeposit= IntegerField('Security Deposit*', [validators.DataRequired(), validators.Regexp('[0-9]+'), validators.NumberRange(min=0)])
-
     feeName= SelectField('fee Name*')
     feeAmount = IntegerField('fee Amount*', [validators.Regexp('[0-9.]+'), validators.NumberRange(min=0)])
     feeOccurrence = SelectField('fee Occurrence*')
@@ -400,13 +405,14 @@ class Property_Manager_User(User):
                                 {'name': "Properties",      'link': "/properties",      'pageID': "properties"}, \
                                 # {'name': "Maintenance",     'link': "/maintenance",     'pageID': "maintenance"}, \
                                 {'name': "Logout",          'link': "/logout",          'pageID': "logout"}]
+    
     def getRentPage(self, sessionInfo):
         monthlist = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        rentRollList = []
-        return render_template('admin/rent_roll.html', headerData = self.headerContents, rentRollList = rentRollList, monthlist=monthlist)
+        form = newPaymentForm(request.form)
+        return render_template('admin/rent_roll.html', headerData = self.headerContents, form = form, monthlist=monthlist)
 
     def getLeasesPage(self, sessionInfo):
-        form = newLeaseForm(request.form, sessionID = self.userSession)
+        form = newLeaseForm(request.form)
         resp = make_response(render_template('admin/leases.html', headerData = self.headerContents, form=form))
         return resp
     
@@ -443,8 +449,13 @@ class AdminUser(User):
                                 # {'name': "Maintenance",     'link': "/maintenance",     'pageID': "maintenance"}, \
                                 {'name': "Logout",          'link': "/logout",          'pageID': "logout"}]
         
+    def getRentPage(self, sessionInfo):
+        monthlist = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+        form = newPaymentForm(request.form)
+        return render_template('admin/rent_roll.html', headerData = self.headerContents, form = form, monthlist=monthlist)
+
     def getLeasesPage(self, sessionInfo):
-        form = newLeaseForm(request.form, sessionID = self.userSession)
+        form = newLeaseForm(request.form)
         resp = make_response(render_template('admin/leases.html', headerData = self.headerContents, form=form))
         return resp
     

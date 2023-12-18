@@ -329,7 +329,7 @@ textarea.satisfiedInputField:focus {
 }
 textarea {
   resize: none;
-  height: 135px;
+  height: 3em;
 }
 .warning {
   background-color: #ffffff;

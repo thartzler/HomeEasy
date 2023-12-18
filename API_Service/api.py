@@ -221,6 +221,7 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
     prevLeaseID = None
     print ("PaymentsWithinDateRange: ", paymentsWithinDateRange)
     missingIcon = paymentStatus.query.filter_by(statusName="missing").one().statusIcon
+    lateIcon = paymentStatus.query.filter_by(statusName="late").one().statusIcon
 
     for paymentWithinDateRange in paymentsWithinDateRange:
         pWDR = paymentWithinDateRange
@@ -239,9 +240,9 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
             else:
                 amt = "No Lease"
             returnData.append({
-                'paymentID': 'Skipped',
+                'paymentID': '',
                 'periodLength': leasePeriod,
-                'status': missingIcon,
+                'status': lateIcon,
                 'amount': amt
             })
             nextPayDate = getDateOnePeriodLater(nextPayDate, leasePeriod)
@@ -260,24 +261,30 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
         if pWDR.paymentID == 1:
             #if the payment is 'upcoming'
             amount = baseAmount
+        comment = "{} payment of ${0:,.2f}".format(pWDR.statusOfPayment.statusName.capitalize(), float(amount))
+        if pWDR.dateReceived:
+            comment += " on {}".format(pWDR.dateReceived.strftime("%b %-d, %Y"))
+        comment += "<br/><br/> Click to Edit"
         returnData.append({
             'paymentID': pWDR.paymentID,
             'periodLength': leasePeriod,
             'status': pWDR.statusOfPayment.statusIcon,
-            'amount': float(amount)
+            'amount': float(amount),
+            'message': comment
         })
         nextPayDate = getDateOnePeriodLater(thisPayDate, leasePeriod)
         print("NPD: ",nextPayDate)
     
     if firstPayment == None:
         # This means there aren't any pWDR: (essentially no leases/payments during that period)
-        # assume month period and keep adding them until it gets up to assumed date range amount needed
+        # assume month period and keep make them up until it gets up to assumed date range amount needed
         while timedelta(days = len(returnData)*30.75) < (eDate-sDate):
             returnData = [{
                 'paymentID': '',
                 'periodLength': 'mo',
                 'status': missingIcon,
-                'amount': 'No Lease'
+                'amount': 'No Lease',
+                'message': "No lease payment found; unit assumed empty"
             }] + returnData
     else:
         # Step 2
@@ -288,7 +295,8 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
                 'paymentID': '',
                 'periodLength': leasePeriod,
                 'status': '',
-                'amount': baseAmount
+                'amount': baseAmount,
+                'message': "Upcoming payment of ${0:,.2f}"
             })
             nextPayDate = getDateOnePeriodLater(nextPayDate, leasePeriod)
 
@@ -302,7 +310,8 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
                 'paymentID': '',
                 'periodLength': leasePeriod,
                 'status': missingIcon,
-                'amount': 'No Lease'
+                'amount': 'No Lease',
+                'message': "No lease payment found; unit assumed empty"
             }] + returnData
             prevPayDate = getDateOnePeriodEarlier(prevPayDate, leasePeriod)
 
@@ -499,6 +508,50 @@ def getAdminRentRollData(company, session, reqArgs, startDate, endDate):
         leaseReturnList.append(leasData)
 
 
+def createPayment(jsonDat):
+    
+    # 1. update the payment with final details
+    # 2. if the payment status is 'complete', then write the paymentItems
+    # 3. if #2, then create the next payment
+
+    createdDBItems = []
+
+    requiredAttrs = ['leaseID', 'people', 'leaseStatus', 
+                     'availableDate', 'leasePeriod', 'leaseSuccessionPeriod',
+                     'fees']
+
+    # for attribute in requiredAttrs:
+    #     if attribute not in jsonData:
+    #         print (jsonData)
+    #         return False, "Failed to create Tenant Account: Missing %s in jsonData"%attribute
+    # if 'moveInDate' in jsonData:
+    #     mID = datetime.strptime(jsonData['moveInDate'],'%Y-%m-%d')
+    #     newtime = jsonData['moveInDate'][:-2]+"01"
+    #     #FUTURE: Setup this to find the actual first period start date
+    #     psd = datetime.strptime(newtime, "%Y-%m-%d")
+    # else:
+    #     mID = None
+    #     psd = None
+
+    # if 'terminationDate' not in jsonData:
+    #     tD = None
+    # else:
+    #     tD = datetime.strptime(jsonData['terminationDate'],'%Y-%m-%d')
+
+    #     __newPament = payment(
+    #     leaseID = int(__newLease.leaseID), 
+    #     periodNo = 0, 
+    #     periodStartDate = psd, 
+    #     dueDate = mID,
+    #     paymentStatus = 1,
+    #     paymentMethod = None,
+    #     amountReceived = 0.0,
+    #     createUser = int(jsonData['createUser']),
+    #     createDate = datetime.utcnow()
+    # )
+
+    # db.session.add(__newPament)
+    # db.session.commit()
 
 
 def createLease(jsonData):

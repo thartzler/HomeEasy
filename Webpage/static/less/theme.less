@@ -261,7 +261,22 @@ button {
     padding-bottom: 20px;
     
 }
-input, select {
+.inputLabelLeft {
+    font-size: 16px;
+    font-weight: bold;
+    text-align: right;
+    line-height: 45px;
+    margin-bottom: 2px;
+    margin: 10px 0 2px 0;
+
+}
+.tableHeaderLabel {
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+}
+input, select, textarea {
     .border-radius();
     min-width: 100%;
     width: 100%;
@@ -305,7 +320,10 @@ input, select {
         }
     }
 }
-
+textarea{
+    resize: none;
+    height: 3em;
+}
 
 .warning {
     .contextual-mixin(@warning-color);
