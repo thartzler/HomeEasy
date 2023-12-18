@@ -941,6 +941,101 @@ class getRentRoll(Resource):
     #     else:
     #         return {'message': 'Unauthorized: You must be logged in to view this request'}, 401
 
+class userPayment(Resource):
+    
+    def get(self):
+        
+        if 'sessionID' in request.args:
+            if 'paymentID' in request.args:
+                ipAddress = request.remote_addr
+                # print (ipAddress)
+                # ipAddress = request.headers['ipAddress']
+                isValid, sessionOrComment = isSessionValid(request.args['sessionID'], ipAddress=ipAddress)
+                if isValid:
+                    sessn = sessionOrComment
+                    accntType = sessn.sessionUser.accountAuthority.typeName
+                    
+                    if accntType in ['landlord'] or 'admin' in accntType.lower():
+
+                        pamnts = payment.query.filter_by(paymentID = str(request.args['paymentID'])).all()
+                        if pamnts:
+                            for pamnt in pamnts:
+                                responseObj = {'status': 200, 'data': {}}
+                                LPList = []
+                                for LPi in pamnt.paymentsLease.leasePeople:
+                                    if LPi.role == 'tenant':
+                                        LPList.append(LPi.leasePerson.firstName + " " + LPi.leasePerson.lastName)
+                                tenants = ", ".join(LPList)
+                                
+                                fees = []
+                                processedBy = []
+                                processedDate = []
+                                paymentDate = ''
+                                if pamnt.statusOfPayment.isCompleted != b'':
+                                    for paymentItem in pamnt.paymentItems:
+                                        fees.append({
+                                            'paymentItemID': paymentItem.paymentItemID,
+                                            'dueDate': paymentItem.dueDate.strftime("%Y-%m-%d"),
+                                            'itemName': paymentItem.itemName,
+                                            'leaseFeeID': paymentItem.leaseFeeID,
+                                            'qty': paymentItem.qty,
+                                            'amountPaid': paymentItem.amountPaid
+                                        })
+                                        if paymentItem.paymentItemCreator.accountPerson.lastName not in processedBy:
+                                            processedBy.append(paymentItem.paymentItemCreator.accountPerson.lastName)
+                                        if paymentItem.createDate.strftime("%Y-%m-%d") not in processedDate:
+                                            processedDate.append(paymentItem.createDate.strftime("%Y-%m-%d"))
+                                        paymentDate = pamnt.dateReceived.strftime("%Y-%m-%d")
+                                else:
+                                    for leaseFeeItem in pamnt.paymentsLease.leaseFees:
+                                        fees.append({
+                                            'paymentItemID': '',
+                                            'dueDate': pamnt.dueDate.strftime("%Y-%m-%d"),
+                                            'itemName': leaseFeeItem.feeName,
+                                            'leaseFeeID': leaseFeeItem.leaseFeeID,
+                                            'qty': "",
+                                            'amountPaid': ''
+                                        })
+                                processedBy = ", ".join(processedBy)
+                                processedDate = ", ".join(processedDate)
+                                
+
+                                data = {
+                                    'paymentID': pamnt.paymentID,
+                                    'tenant': tenants,
+                                    'address': pamnt.paymentsLease.leasedProperty.fullAddress.getHouseNStreet(),
+                                    'paymentStatus': pamnt.paymentStatus,
+                                    'paymentMethod': pamnt.paymentMethod,
+                                    'paymentDate': paymentDate,
+                                    'fees': fees,
+                                    'processedBy': processedBy,
+                                    'processedDate': processedDate
+                                }
+                                
+                                responseObj['data'] = data
+
+                                return responseObj, responseObj['status']
+
+                        else:
+                            sessionOrComment = "No Payment with that paymentID"
+                    elif accntType == 'tenant':
+                        # FUTURE: Tenant user get /payment-history function goes here
+                        data = {
+                            'status': 200,
+                            'name': "Hello",
+                            'id': "World"
+                        }
+                        return data, data['status']
+                else:
+                    sessionOrComment = "Insufficient Authority to view this data"
+                return {'status': 401, 'message': 'Unauthorized: %s'%(sessionOrComment)}, 401
+            else:
+                return {'status': 401, 'message': 'Missing Input: You must specify the paymentID'}, 401
+
+        else:
+            return {'status': 401, 'message': 'Unauthorized: You must be logged in to view this request'}, 401
+
+
 class paymentOptions(Resource):
 
     def get(self):
@@ -1465,7 +1560,7 @@ api.add_resource(createSessionID, '/createSessionID')
 
 # Rent Page
 api.add_resource(getRentRoll, '/rent')
-# api.add_resource(userPayment, '/payment')
+api.add_resource(userPayment, '/payment')
 api.add_resource(paymentOptions, '/paymentOptions')
 
 # Leases Page

@@ -190,7 +190,10 @@
                                 newCell2.title = statuses.message
 
                                 if (statuses.paymentID) {
+                                    let newa = document.createElement("a")
                                     newCell2.setAttribute('onclick', `showPayment(${statuses.paymentID})`)
+                                    newa.appendChild(newCell2)
+                                    newCell2 = newa
                                 }
                                 newRow.appendChild(newCell2);
                             }
