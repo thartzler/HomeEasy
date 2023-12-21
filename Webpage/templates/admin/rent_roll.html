@@ -60,6 +60,10 @@
         }
         .chartCell{
             text-align: center;
+            vertical-align: middle;
+        }
+        .linked{
+            cursor: pointer;
         }
         
     </style>
@@ -116,8 +120,8 @@
             <!-- <div class="container">
                 <button id="rentPaymentButton"></button>
             </div> -->
-            <div class="container" id="render_rentRollTable">
-                <table id="rentRollTable">
+            <div class="container table-responsive-xl" id="render_rentRollTable">
+                <table class="table" id="rentRollTable">
                     <thead>
                         <tr class="TitleRow">
                             <td>Tenant - Property</td>
@@ -164,8 +168,9 @@
 
                 let startDate = '2023-01-01'
                 let endDate = '2023-12-31'
+                let localDate = new Date()
                 
-                const response = await fetch(`http://api.hartzlerhome.solutions/rent?sessionID=${document.cookie.split('=')[1]}&viewStartDate=${startDate}&viewEndDate=${endDate}`);
+                const response = await fetch(`http://api.hartzlerhome.solutions/rent?sessionID=${document.cookie.split('=')[1]}&viewStartDate=${startDate}&viewEndDate=${endDate}&year=${localDate.getFullYear()}&month=${localDate.getMonth()}&day=${localDate.getDate()}`);
                 const data = await response.json()
                 console.log(data)
                 
@@ -190,10 +195,8 @@
                                 newCell2.title = statuses.message
 
                                 if (statuses.paymentID) {
-                                    let newa = document.createElement("a")
                                     newCell2.setAttribute('onclick', `showPayment(${statuses.paymentID})`)
-                                    newa.appendChild(newCell2)
-                                    newCell2 = newa
+                                    newCell2.classList.add('linked')
                                 }
                                 newRow.appendChild(newCell2);
                             }

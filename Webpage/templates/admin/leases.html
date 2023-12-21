@@ -374,7 +374,7 @@
                         option3.innerText = periodData.name; 
                         leaseSuccessionOccurrenceSelect.appendChild(option2);
                         startAfterOccurrenceSelect.appendChild(option3);
-                        if (periodID.isLeasePeriod == true){
+                        if (periodData.isLeasePeriod == true){
                             let option = document.createElement("option");
                             option.value = periodData.periodID;
                             option.innerText = `1 ${periodData.name}`; 

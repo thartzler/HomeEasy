@@ -6,7 +6,7 @@ import bcrypt
 import urllib.parse
 from sqlalchemy.sql import exists
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from DB_ORM import *
 
 
@@ -129,22 +129,29 @@ def newPerson(firstName, lastName, phoneNumber, addressID = None, additionalDeta
             db.session.commit()
     return newPerson
 
-def getDateOnePeriodLater(periodBegin:datetime, period_abbreviation:str):
+def getDateXPeriodsLater(periodBegin:datetime, period_abbreviation:str, numPeriods: int = 1) -> date:
+    
     if periodBegin:
+        if type(periodBegin) == date:
+            periodBegin = datetime.combine(periodBegin, datetime.min.time())
         if period_abbreviation == 'wk':
-            tD = periodBegin + timedelta(weeks = 1)
+            tD = periodBegin + timedelta(weeks = numPeriods)
             tD = tD.strftime("%Y-%m-%d")
         elif period_abbreviation == 'mo':
-            month = int(periodBegin.strftime('%m'))+1
-            year = int(periodBegin.strftime("%Y"))
-            if month >12:
-                month -= 12
-                year += 1
-            tD = str(year)+"-"+str(month)+periodBegin.strftime("-%d")
+            loops = 0
+            while loops < numPeriods:
+                month = int(periodBegin.strftime('%m'))+1
+                year = int(periodBegin.strftime("%Y"))
+                if month >12:
+                    month -= 12
+                    year += 1
+                periodBegin = datetime.strptime(str(year)+"-"+str(month)+periodBegin.strftime("-%d"), "%Y-%m-%d")
+                loops +=1
+            tD = periodBegin.strftime("%Y-%m-%d")
         elif period_abbreviation == 'day':
-            tD = (periodBegin + timedelta(days = 1)).strftime("%Y-%m-%d")
+            tD = (periodBegin + timedelta(days = numPeriods)).strftime("%Y-%m-%d")
         elif period_abbreviation == 'yr':
-            tD = str(int(periodBegin.strftime("%Y"))+1)+periodBegin.strftime("-%m-%d")
+            tD = str(int(periodBegin.strftime("%Y"))+numPeriods)+periodBegin.strftime("-%m-%d")
         else:
             return "unknown:abbr"
     else:
@@ -198,11 +205,53 @@ def getBasePeriodPayment(leaseID: int):
             'paymentAmount': x,
             'rentPeriod': rentPeriodAbbr}
 
-def calculatePayment(leaseID:int, payDate:datetime):
-    now = datetime.utcnow()
-    return "payment"
+def calculatePayment(paymentObj:payment, payDate:datetime) -> float:
+    # Calculates a payment amount given the paymentObject and the date it would be paid.
 
-def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
+    x = "No Lease"
+    applicableFees = []
+    rentPeriodAbbr = 'mo'
+
+    if type(paymentObj) == payment:
+        x = 0.0
+        leaseFees = leaseFee.query.filter_by(leaseID = paymentObj.leaseID).join(leaseFee.leaseFeeType).order_by(feeType.displayOrder.asc()).all()
+        for leaseFee_i in leaseFees:
+            qty = 0
+            feesOccurrance = leaseFee_i.leaseFeeOccurrence.occurrencePeriod.abbreviation
+            if leaseFee_i.feeName.lower() == 'rent':
+                rentPeriodAbbr = feesOccurrance
+
+            if feesOccurrance != "occr":
+                lenActivation = leaseFee_i.startAfterLength
+                if lenActivation == 0:
+                    qty = 1
+                else:
+                    # aD = activationDate
+
+                    activationPeriod = leaseFee_i.leaseFeePeriod.abbreviation
+                    qtyFeeOccr = leaseFee_i.leaseFeeOccurrence.occurrence
+                    aD = getDateXPeriodsLater(paymentObj.dueDate, activationPeriod, lenActivation)# step 1: is the fee active yet?
+                    while payDate.date() > aD:
+                        qty += 1                    # step 2: how many times should the fee be included?
+                        if feesOccurrance == rentPeriodAbbr:
+                            break # these fees only get charged once per payment
+                        aD = getDateXPeriodsLater(aD, feesOccurrance, qtyFeeOccr)
+            if qty != 0:
+                # step 3: add it
+                applicableFees.append({
+                    "feeName": leaseFee_i.feeName,
+                    'qty': qty,
+                    'feeAmount': leaseFee_i.feeAmount,
+                    'periodName': feesOccurrance
+                })
+                x += float(leaseFee_i.feeAmount)*qty
+                        
+    return {'leaseID': paymentObj.leaseID,
+            'payentBreakdown':applicableFees,
+            'paymentAmount': x,
+            'rentPeriod': rentPeriodAbbr}
+
+def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime, uDate:datetime) -> list:
     # this returns a list of all the given property's payment periods within the given time frame
     # payment period objects include paymentID, status, and amount
     returnData = []
@@ -243,9 +292,10 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
                 'paymentID': '',
                 'periodLength': leasePeriod,
                 'status': lateIcon,
-                'amount': amt
+                'amount': amt,
+                'message': "Error: it seems a payment was skipped.\nPlease contact support."
             })
-            nextPayDate = getDateOnePeriodLater(nextPayDate, leasePeriod)
+            nextPayDate = getDateXPeriodsLater(nextPayDate, leasePeriod, 1)
             print("NPD: ",nextPayDate)
 
         # check if the current lease changed
@@ -253,18 +303,25 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
             # There's a new lease
             leasePeriod = getBasePeriodPayment(pWDR.leaseID)
             baseAmount = leasePeriod['paymentAmount']
+            print ("LeasePeriodInfo: ",leasePeriod)
             leasePeriod = leasePeriod['rentPeriod']
             prevLeaseID = pWDR.leaseID
+            print (baseAmount)
 
         #recording the payment information (Starts at the oldest and ends with the newest) 
         amount = float(pWDR.amountReceived)
-        if pWDR.paymentID == 1:
-            #if the payment is 'upcoming'
-            amount = baseAmount
+        if pWDR.paymentStatus == 1:
+            #if the payment is 'upcoming' calculate it based on current date
+            amount = calculatePayment(pWDR, uDate)
+            print("CalculatedPayment", amount)
+            amount = amount['paymentAmount']
+            print ("NewCalculatedAmount: ", amount)
+            print ("Old Amount: ", baseAmount)
+            # amount = baseAmount
         comment = str(pWDR.statusOfPayment.statusName).capitalize()+" payment of ${0:,.2f}".format(float(amount))
         if pWDR.dateReceived:
             comment += " on {}".format(pWDR.dateReceived.strftime("%b %-d, %Y"))
-        comment += "<br/><br/> Click to Edit"
+        comment += "\n\n Click to Edit"
         returnData.append({
             'paymentID': pWDR.paymentID,
             'periodLength': leasePeriod,
@@ -272,7 +329,7 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
             'amount': float(amount),
             'message': comment
         })
-        nextPayDate = getDateOnePeriodLater(thisPayDate, leasePeriod)
+        nextPayDate = getDateXPeriodsLater(thisPayDate, leasePeriod, 1)
         print("NPD: ",nextPayDate)
     
     if firstPayment == None:
@@ -296,9 +353,9 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime) -> list:
                 'periodLength': leasePeriod,
                 'status': '',
                 'amount': baseAmount,
-                'message': "Upcoming payment of ${0:,.2f}"
+                'message': "Estimated payment of ${0:,.2f}".format(float(baseAmount)) + ' due on %s'%(nextPayDate.strftime("%Y-%m-%d"))
             })
-            nextPayDate = getDateOnePeriodLater(nextPayDate, leasePeriod)
+            nextPayDate = getDateXPeriodsLater(nextPayDate, leasePeriod, 1)
 
         
         # Step 3
@@ -423,7 +480,7 @@ def newLandlordAccount(jsonData):
     # except Exception as e:
     #     return False, e
 
-def getAdminRentRollData(company, session, reqArgs, startDate, endDate):
+def getAdminRentRollData(company, session, reqArgs, startDate, endDate, userDate):
     returnData = []
     if "propertyID" in reqArgs:
         properties = property.query.filter_by(propertyID = reqArgs["propertyID"],companyID = company.companyID).all()
@@ -448,7 +505,7 @@ def getAdminRentRollData(company, session, reqArgs, startDate, endDate):
             'nickname':         prprty.nickname,
             'address':          prprty.fullAddress.getHouseNStreet(),
             'tenants':          tenants,
-            'paymentStatuses':  getPaymentStatus(prprty, sDate = startDate, eDate = endDate),
+            'paymentStatuses':  getPaymentStatus(prprty, sDate = startDate, eDate = endDate, uDate = userDate),
         }
 
 
@@ -886,10 +943,12 @@ class getRentRoll(Resource):
                         try:
                             sDate = datetime.strptime(request.args['viewStartDate'], "%Y-%m-%d")
                             eDate = datetime.strptime(request.args['viewEndDate'], "%Y-%m-%d")
+                            uDate = datetime(year= int(request.args['year']), month= int(request.args['month']), day=int(request.args['day']))
+                            print ("TYPE uDATE: ", type(eDate), type(uDate))
                             if (eDate-sDate)>timedelta(days=366):
                                 return {'status': 401, 'message': 'Error: Date range should be less than 1 year.'}, 401
                         except:
-                            return {'status': 401, 'message': 'Incorrect Date Format: viewStartDate and viewEndDate use yyyy-mm-dd format'}, 401
+                            return {'status': 401, 'message': 'Incorrect Date Format: viewStartDate and viewEndDate use yyyy-mm-dd format, Year, month, and day must be included as integers as well'}, 401
                     else:
                         return {'status': 401, 'message': 'Missing Input: You must specify the viewStartDate and viewEndDate'}, 401
                     cRPs = sessn.sessionUser.companyRolePerson
@@ -901,7 +960,7 @@ class getRentRoll(Resource):
                             returnData['data'].append({
                                 'companyID':cmpny.companyID,
                                 'companyName':cmpny.companyName,
-                                'rentRoll': getAdminRentRollData(company = cmpny, session = sessn, reqArgs = request.args, startDate = sDate, endDate = eDate)
+                                'rentRoll': getAdminRentRollData(company = cmpny, session = sessn, reqArgs = request.args, startDate = sDate, endDate = eDate, userDate = uDate)
                             })
                         
                         return returnData, returnData['status']
@@ -1114,7 +1173,7 @@ class adminLeases(Resource):
                                 'monthlyFees': "<br/>".join(fees),
                                 'leasePeriod': "1 "+ str(lease_i.periodOfLease.abbreviation),
                                 'moveInDate': lease_i.moveInDate.strftime("%Y-%m-%d"),
-                                'endDate': getDateOnePeriodLater(lease_i.moveInDate, lease_i.periodOfLease.abbreviation).strftime("%Y-%m-%d")
+                                'endDate': getDateXPeriodsLater(lease_i.moveInDate, lease_i.periodOfLease.abbreviation, 1).strftime("%Y-%m-%d")
                             }
                             leaseReturnList.append(leasData)
 
