@@ -565,7 +565,7 @@ def getAdminRentRollData(company, session, reqArgs, startDate, endDate, userDate
         leaseReturnList.append(leasData)
 
 
-def createPayment(jsonDat):
+def createPayment(jsonData):
     
     # 1. update the payment with final details
     # 2. if the payment status is 'complete', then write the paymentItems
@@ -577,10 +577,10 @@ def createPayment(jsonDat):
                      'availableDate', 'leasePeriod', 'leaseSuccessionPeriod',
                      'fees']
 
-    # for attribute in requiredAttrs:
-    #     if attribute not in jsonData:
-    #         print (jsonData)
-    #         return False, "Failed to create Tenant Account: Missing %s in jsonData"%attribute
+    for attribute in requiredAttrs:
+        if attribute not in jsonData:
+            print (jsonData)
+            return False, "Failed to create payment: Missing %s in jsonData"%attribute
     # if 'moveInDate' in jsonData:
     #     mID = datetime.strptime(jsonData['moveInDate'],'%Y-%m-%d')
     #     newtime = jsonData['moveInDate'][:-2]+"01"

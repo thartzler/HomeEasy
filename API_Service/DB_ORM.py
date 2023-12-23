@@ -373,15 +373,18 @@ class property(db.Model):
     propertyLeases = db.relationship('lease', back_populates='leasedProperty')           #done
     propertyAuthor = db.relationship('userAccount', back_populates='authoredProperty')  #done
 
-    def getActiveLease(self) -> lease:
+    def getActiveLease(self, uDate) -> lease:
         for propertyLease in self.propertyLeases:
-            if propertyLease.terminationDate == None:
+            if propertyLease.terminationDate == None or propertyLease.terminationDate > uDate:
                 #if there is no termination date, then it's an active lease
                 return propertyLease
         return None
     
-    def getActiveLeaseID(self):
-        return self.getActiveLease().leaseID
+    def getActiveLeaseID(self, uDate):
+        activeLease = self.getActiveLease(uDate)
+        if activeLease:
+            return activeLease.leaseID
+        return None
 
     def __repr__(self) -> None:
         return "<property(propertyID = '%r', nickname = '%s', address = '%s')>" %(self.propertyID, self.nickname, self.fullAddress)
