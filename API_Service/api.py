@@ -488,7 +488,7 @@ def getAdminRentRollData(company, session, reqArgs, startDate, endDate, userDate
         properties = property.query.filter_by(companyID = company.companyID).all()
 
     for prprty in properties:
-        hasActiveLease = prprty.getActiveLease()
+        hasActiveLease = prprty.getActiveLease(userDate)
         if hasActiveLease:
             lease_i = hasActiveLease
             LPList = []
