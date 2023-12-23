@@ -375,7 +375,8 @@ class property(db.Model):
 
     def getActiveLease(self, uDate) -> lease:
         for propertyLease in self.propertyLeases:
-            if propertyLease.terminationDate == None or propertyLease.terminationDate > uDate:
+            terminationDate = propertyLease.terminationDate
+            if terminationDate == None or datetime.combine(terminationDate, datetime.min.time()) > uDate:
                 #if there is no termination date, then it's an active lease
                 return propertyLease
         return None

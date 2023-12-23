@@ -256,7 +256,7 @@ def getPaymentStatus(prprty:property, sDate:datetime, eDate:datetime, uDate:date
     # payment period objects include paymentID, status, and amount
     returnData = []
 
-    basePaymentInfo = getBasePeriodPayment(prprty.getActiveLeaseID())
+    basePaymentInfo = getBasePeriodPayment(prprty.getActiveLeaseID(uDate))
     # 0. Get basic info for the current lease
     # 1. fills in all the payments in the date range (it may not be homogenious, so keep track and fill in with blanks as needed)
     # 2. if there are periods after the latest payment record and before the endDate, fill them with basePayment values
@@ -944,7 +944,7 @@ class getRentRoll(Resource):
                             sDate = datetime.strptime(request.args['viewStartDate'], "%Y-%m-%d")
                             eDate = datetime.strptime(request.args['viewEndDate'], "%Y-%m-%d")
                             uDate = datetime(year= int(request.args['year']), month= int(request.args['month']), day=int(request.args['day']))
-                            print ("TYPE uDATE: ", type(eDate), type(uDate))
+                            # print ("TYPE uDATE: ", type(eDate), type(uDate))
                             if (eDate-sDate)>timedelta(days=366):
                                 return {'status': 401, 'message': 'Error: Date range should be less than 1 year.'}, 401
                         except:
