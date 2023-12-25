@@ -182,7 +182,7 @@
                         for (let rentRollData of companyData.rentRoll) {
                             let newRow = document.createElement('tr');
                             let newCell = document.createElement('td')
-                            newCell.innerHTML = `<span style='font-size: 1.2rem;font-weight: 600;'>${rentRollData.nickname}</span><br/>${rentRollData.address}`
+                            newCell.innerHTML = `<span style='font-size: 1.2rem;font-weight: 600;'>${rentRollData.tenants}</span><br/>${rentRollData.nickname} - ${rentRollData.address}`
                             newRow.appendChild(newCell)
                             for (let statuses of rentRollData.paymentStatuses) {
                                 let newCell2 = document.createElement('td');
@@ -421,18 +421,20 @@
                 paymentItemTable.deleteRow(rowCount -1);
             }
 
+            function loadPayment(paymentID) {
+                let headerLabel = documemt.getElementById('staticBackdropLabel');
+                // FUTURE: set to value from DB result
+                
+            }
+
             function showPayment (paymentID) {
                 console.log(paymentID)
+                loadPayment(paymentID)
                 const saveModal = document.getElementById('paymentEditModal')
                 var myModal = new bootstrap.Modal(saveModal, {})
                 myModal.show()
             }
 
-            function loadPayment(paymentID) {
-
-                let headerLabel = documemt.getElementById('staticBackdropLabel');
-                // FUTURE: set to value from DB result
-            }
             function buildJsonData(form) {
                 const jsonData = {'paymentItems': []};
                 const paymentItemInfo = ['paymentItemID', 'itemName','amountPaid']

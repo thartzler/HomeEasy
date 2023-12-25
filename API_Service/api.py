@@ -1015,68 +1015,82 @@ class userPayment(Resource):
                     accntType = sessn.sessionUser.accountAuthority.typeName
                     
                     if accntType in ['landlord'] or 'admin' in accntType.lower():
+                        # FUTURE: Ensure the payment is associated with the user's company.
+                        cmpnys = []
+                        cRPs = sessn.sessionUser.companyRolePerson
+                        if len(cRPs) >0:
+                            for cRP in cRPs:
+                                cmpnys.append(cRP.associatedCompany)
+                            print ("company(s): ", cmpnys)
 
-                        pamnts = payment.query.filter_by(paymentID = str(request.args['paymentID'])).all()
-                        if pamnts:
-                            for pamnt in pamnts:
-                                responseObj = {'status': 200, 'data': {}}
-                                LPList = []
-                                for LPi in pamnt.paymentsLease.leasePeople:
-                                    if LPi.role == 'tenant':
-                                        LPList.append(LPi.leasePerson.firstName + " " + LPi.leasePerson.lastName)
-                                tenants = ", ".join(LPList)
-                                
-                                fees = []
-                                processedBy = []
-                                processedDate = []
-                                paymentDate = ''
-                                if pamnt.statusOfPayment.isCompleted != b'':
-                                    for paymentItem in pamnt.paymentItems:
-                                        fees.append({
-                                            'paymentItemID': paymentItem.paymentItemID,
-                                            'dueDate': paymentItem.dueDate.strftime("%Y-%m-%d"),
-                                            'itemName': paymentItem.itemName,
-                                            'leaseFeeID': paymentItem.leaseFeeID,
-                                            'qty': paymentItem.qty,
-                                            'amountPaid': paymentItem.amountPaid
-                                        })
-                                        if paymentItem.paymentItemCreator.accountPerson.lastName not in processedBy:
-                                            processedBy.append(paymentItem.paymentItemCreator.accountPerson.lastName)
-                                        if paymentItem.createDate.strftime("%Y-%m-%d") not in processedDate:
-                                            processedDate.append(paymentItem.createDate.strftime("%Y-%m-%d"))
-                                        paymentDate = pamnt.dateReceived.strftime("%Y-%m-%d")
-                                else:
-                                    for leaseFeeItem in pamnt.paymentsLease.leaseFees:
-                                        fees.append({
-                                            'paymentItemID': '',
-                                            'dueDate': pamnt.dueDate.strftime("%Y-%m-%d"),
-                                            'itemName': leaseFeeItem.feeName,
-                                            'leaseFeeID': leaseFeeItem.leaseFeeID,
-                                            'qty': "",
-                                            'amountPaid': ''
-                                        })
-                                processedBy = ", ".join(processedBy)
-                                processedDate = ", ".join(processedDate)
-                                
 
-                                data = {
-                                    'paymentID': pamnt.paymentID,
-                                    'tenant': tenants,
-                                    'address': pamnt.paymentsLease.leasedProperty.fullAddress.getHouseNStreet(),
-                                    'paymentStatus': pamnt.paymentStatus,
-                                    'paymentMethod': pamnt.paymentMethod,
-                                    'paymentDate': paymentDate,
-                                    'fees': fees,
-                                    'processedBy': processedBy,
-                                    'processedDate': processedDate
-                                }
-                                
-                                responseObj['data'] = data
+                            pamnts = db.session.query(payment).filter(payment.paymentID == str(request.args['paymentID'])).all()
+                            if pamnts:
+                                for pamnt in pamnts:
+                                    if pamnt.paymentsLease.leasedProperty.companyID in cmpnys:
+                                        responseObj = {'status': 200, 'data': {}}
+                                        LPList = []
+                                        for LPi in pamnt.paymentsLease.leasePeople:
+                                            if LPi.role == 'tenant':
+                                                LPList.append(LPi.leasePerson.firstName + " " + LPi.leasePerson.lastName)
+                                        tenants = ", ".join(LPList)
+                                        
+                                        fees = []
+                                        processedBy = []
+                                        processedDate = []
+                                        paymentDate = ''
+                                        if pamnt.statusOfPayment.isCompleted != b'':
+                                            for paymentItem in pamnt.paymentItems:
+                                                fees.append({
+                                                    'paymentItemID': paymentItem.paymentItemID,
+                                                    'dueDate': paymentItem.dueDate.strftime("%Y-%m-%d"),
+                                                    'itemName': paymentItem.itemName,
+                                                    'leaseFeeID': paymentItem.leaseFeeID,
+                                                    'qty': paymentItem.qty,
+                                                    'amountPaid': paymentItem.amountPaid
+                                                })
+                                                if paymentItem.paymentItemCreator.accountPerson.lastName not in processedBy:
+                                                    processedBy.append(paymentItem.paymentItemCreator.accountPerson.lastName)
+                                                if paymentItem.createDate.strftime("%Y-%m-%d") not in processedDate:
+                                                    processedDate.append(paymentItem.createDate.strftime("%Y-%m-%d"))
+                                                paymentDate = pamnt.dateReceived.strftime("%Y-%m-%d")
+                                        else:
+                                            # the payment isn't completed so return the fees ordered by the fee order
+                                            leaseFees4Lease = db.session.query(leaseFee).filter_by(leaseID = pamnt.paymentsLease.leaseID).join(leaseFee.leaseFeeType).order_by(feeType.displayOrder).all()
+                                            for leaseFeeItem in leaseFees4Lease:
+                                                fees.append({
+                                                    'paymentItemID': '',
+                                                    'dueDate': pamnt.dueDate.strftime("%Y-%m-%d"),
+                                                    'itemName': leaseFeeItem.feeName,
+                                                    'leaseFeeID': leaseFeeItem.leaseFeeID,
+                                                    'qty': "",
+                                                    'amountPaid': ''
+                                                })
+                                        processedBy = ", ".join(processedBy)
+                                        processedDate = ", ".join(processedDate)
+                                        
 
-                                return responseObj, responseObj['status']
+                                        data = {
+                                            'paymentID': pamnt.paymentID,
+                                            'tenant': tenants,
+                                            'address': pamnt.paymentsLease.leasedProperty.fullAddress.getHouseNStreet(),
+                                            'paymentStatus': pamnt.paymentStatus,
+                                            'paymentMethod': pamnt.paymentMethod,
+                                            'paymentDate': paymentDate,
+                                            'fees': fees,
+                                            'processedBy': processedBy,
+                                            'processedDate': processedDate
+                                        }
+                                        
+                                        responseObj['data'] = data
 
+                                        return responseObj, responseObj['status']
+                                    else:
+                                        sessionOrComment = "No Payment with the paymentID = %s for your company"%(pamnt.paymentID)
+                            else:
+                                sessionOrComment = "No Payment with that paymentID"
                         else:
-                            sessionOrComment = "No Payment with that paymentID"
+                            sessionOrComment = "No Payment with that paymentID for your company"
                     elif accntType == 'tenant':
                         # FUTURE: Tenant user get /payment-history function goes here
                         data = {
