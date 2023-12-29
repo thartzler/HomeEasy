@@ -421,9 +421,54 @@
                 paymentItemTable.deleteRow(rowCount -1);
             }
 
-            function loadPayment(paymentID) {
-                let headerLabel = documemt.getElementById('staticBackdropLabel');
-                // FUTURE: set to value from DB result
+            async function loadPayment(paymentID) {
+                let paymentItemTable = documemt.getElementById('paymentItemTableContent');
+                let payStatus = document.getElementById('paymentStatus')
+                let payMethod = document.getElementById('paymentMethod')
+                let payAmount = document.getElementById('paymentAmount')
+                let payDate = document.getElementById('paymentDate')
+                let comments = document.getElementById('comments')
+                // 1. get the data from the API service
+                const response = await fetch(`api.hartzlerhome.solutions/payment?sessionID=${document.cookie.split('=')[1]}&paymentID=${paymentID}`);
+                const data = await response.json()
+                console.log(data)
+
+                // 2. add the data in the modal
+                if (data.status == 200) {
+                    // 2.1 populate the paymentMethod select boxes
+                    if (data.data.paymentStatus == 3) {
+                        // Then fill in the entire status
+
+                    } else {
+                        //fill in the status, and the corresponding fees with entry boxes for the qty
+                        
+                    }
+                    
+                    let paymentMethodSelect = document.getElementById('paymentMethod');
+                    paymentMethodSelect.appendChild(document.createElement("option"));
+                    for (let paymentMethod of data.paymentMethods) {
+                        // create new option
+                        let option = document.createElement("option");
+                        option.value = paymentMethod.methodID;
+                        option.innerText = `${paymentMethod.methodName}`;
+                        paymentMethodSelect.appendChild(option);
+                    };
+
+                    // 2.2 populate the paymentStatus select boxes
+                    let paymentStatusSelect = document.getElementById('paymentStatus');
+                    paymentStatusSelect.appendChild(document.createElement("option"));
+                    for (let paymentStat of data.paymentStatus) {
+                        // create new option
+                        let option = document.createElement("option");
+                        option.value = paymentStat.statusID;
+                        option.innerText = `${paymentStat.statusName}`; 
+                        paymentStatusSelect.appendChild(option);
+                    };
+
+                    // document.getElementById('newPaymentButton').disabled = false;
+                    return;
+                };
+                
                 
             }
 

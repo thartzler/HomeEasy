@@ -1,0 +1,100 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "virtualMachines_WebServer_name": {
+            "defaultValue": "WebServer",
+            "type": "String"
+        },
+        "disks_WebServer_disk1_1de97d13d651418f9425062f47e100e7_externalid": {
+            "defaultValue": "/subscriptions/57521ece-6452-4f81-b0b4-fad2f57aca1c/resourceGroups/HomeEasy/providers/Microsoft.Compute/disks/WebServer_disk1_1de97d13d651418f9425062f47e100e7",
+            "type": "String"
+        },
+        "networkInterfaces_webserver888_externalid": {
+            "defaultValue": "/subscriptions/57521ece-6452-4f81-b0b4-fad2f57aca1c/resourceGroups/HomeEasy/providers/Microsoft.Network/networkInterfaces/webserver888",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2023-03-01",
+            "name": "[parameters('virtualMachines_WebServer_name')]",
+            "location": "eastus",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_B2s"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "canonical",
+                        "offer": "0001-com-ubuntu-server-focal",
+                        "sku": "20_04-lts-gen2",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(parameters('virtualMachines_WebServer_name'), '_disk1_1de97d13d651418f9425062f47e100e7')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "StandardSSD_LRS",
+                            "id": "[parameters('disks_WebServer_disk1_1de97d13d651418f9425062f47e100e7_externalid')]"
+                        },
+                        "deleteOption": "Delete",
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": [],
+                    "diskControllerType": "SCSI"
+                },
+                "osProfile": {
+                    "computerName": "[parameters('virtualMachines_WebServer_name')]",
+                    "adminUsername": "azureuser",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": true,
+                        "ssh": {
+                            "publicKeys": [
+                                {
+                                    "path": "/home/azureuser/.ssh/authorized_keys",
+                                    "keyData": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4uxQ+FhNEAltzyrLNrKILkbNKt50rHPk06NUSx8rqqwb1gSTq0WZMXrZrSK0nMbjJGs5yyvHhWkH0DVk6Z5CTjkMnqfReRITlNmsXPOnnXLYmcKb74jXzDOTOqL/Jt/Jj6jpo0vpTYueGP7DZhQdd5s5mDtejZaGxPpwb63OyMj9HvIR5w5VTYPXnH3dvCglNi/sLBkY7TYjw6lbrKN192WQqGckd638rofEn3i4Y7EN4EfeSJ/kEEUqYNnLDkDJ/4lVDWTUn8XlDBcfzfzvpDaeriAb6lnibxmVdN2ZbUFdJI3rWmk1V290DO7B+JU+R25Zw4EuJfhT5i96LWl3KtFG6o2TcnSgzhb08L8gjiUzSd8w/R1eFMcox0+4s0wIGHK+NPlTGvkpG4XTJFGj+6As9U46Uda3tG7w2Q6b4hOAWVYj0z3hf2NqzCffow30Xw3LhZKhIYz9t+4HrEdN2rzqkQKkI85UfHs2IRgdfWTfS45F26/Zu5sbdsk3KTOU= generated-by-azure"
+                                }
+                            ]
+                        },
+                        "provisionVMAgent": true,
+                        "patchSettings": {
+                            "patchMode": "ImageDefault",
+                            "assessmentMode": "ImageDefault"
+                        },
+                        "enableVMAgentPlatformUpdates": false
+                    },
+                    "secrets": [],
+                    "allowExtensionOperations": true,
+                    "requireGuestProvisionSignal": true
+                },
+                "securityProfile": {
+                    "uefiSettings": {
+                        "secureBootEnabled": true,
+                        "vTpmEnabled": true
+                    },
+                    "securityType": "TrustedLaunch"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[parameters('networkInterfaces_webserver888_externalid')]",
+                            "properties": {
+                                "deleteOption": "Detach"
+                            }
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true
+                    }
+                }
+            }
+        }
+    ]
+}

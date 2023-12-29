@@ -1015,12 +1015,11 @@ class userPayment(Resource):
                     accntType = sessn.sessionUser.accountAuthority.typeName
                     
                     if accntType in ['landlord'] or 'admin' in accntType.lower():
-                        # FUTURE: Ensure the payment is associated with the user's company.
                         cmpnys = []
                         cRPs = sessn.sessionUser.companyRolePerson
                         if len(cRPs) >0:
                             for cRP in cRPs:
-                                cmpnys.append(cRP.associatedCompany)
+                                cmpnys.append(cRP.associatedCompany.companyID)
                             print ("company(s): ", cmpnys)
 
 
